@@ -7,7 +7,7 @@
 | **ICE-PUZZLE.md** | **冰面推箱规则真源**（冰格/墙、①②、三星、手感2、出题铁律） |
 | **LEVEL-RESEARCH.md** | **关卡检索计划**（路径规划 × 推箱；三轮已收束） |
 | **LEVEL-KNOWLEDGE.md** | **关卡设计知识**（检索收敛 + 实装翻车，出题用） |
-| **LEVEL-TEMPLATES.md** | **现行十关**（与 `levels.ts` 一致） |
+| **LEVEL-TEMPLATES.md** | **现行十五关**（与 `levels.ts` 一致） |
 | ENGINEERING.md | 底座打包/适配 |
 | MERGE.md | 双工程合并决策 |
 | HAPTICS.md | 震动接入（插件怎么接上） |

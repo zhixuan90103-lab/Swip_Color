@@ -18,7 +18,7 @@ portrait-webgpu-base/
 ├── capacitor.config.ts     # contentInset never · scrollEnabled false
 ├── src/
 │   ├── main.ts             # 启动 + startIceGame
-│   ├── game/               # 冰面模拟 / 手感2 / 十关
+│   ├── game/               # 冰面模拟 / 手感2 / 十五关
 │   ├── create-renderer.ts
 │   ├── style.css
 │   ├── adapt/

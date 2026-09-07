@@ -1,7 +1,7 @@
 # 检索计划：路径规划关卡 × 推箱关卡
 
 日期：**2026-09-07**。配套玩法真源：[ICE-PUZZLE.md](./ICE-PUZZLE.md)。  
-本文是检索过程存档。出题用 [LEVEL-KNOWLEDGE.md](./LEVEL-KNOWLEDGE.md)；现行十关 [LEVEL-TEMPLATES.md](./LEVEL-TEMPLATES.md)。
+本文是检索过程存档。出题用 [LEVEL-KNOWLEDGE.md](./LEVEL-KNOWLEDGE.md)；现行十五关 [LEVEL-TEMPLATES.md](./LEVEL-TEMPLATES.md)。
 
 本游戏不是纯推箱子，也不是纯迷宫。检索必须同时覆盖两轴，并盯住交叉地带。
 

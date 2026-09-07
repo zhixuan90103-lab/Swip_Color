@@ -4,6 +4,8 @@ import { applyDir } from './iceSim';
 import { cellKey, ratingStars, type Dir, type IceState } from './iceTypes';
 import { LEVELS } from './levels';
 
+const DIRS: Dir[] = ['up', 'down', 'left', 'right'];
+
 function play(start: IceState, dirs: Dir[]): IceState {
   let s = start;
   for (const d of dirs) s = applyDir(s, d).state;
@@ -11,7 +13,6 @@ function play(start: IceState, dirs: Dir[]): IceState {
 }
 
 function canThreeStarsWithoutBox(start: IceState): boolean {
-  const DIRS: Dir[] = ['up', 'down', 'left', 'right'];
   const seen = new Set<string>();
   const q: IceState[] = [start];
   const keyOf = (s: IceState) =>
@@ -33,7 +34,6 @@ function canThreeStarsWithoutBox(start: IceState): boolean {
   return false;
 }
 
-/** 满星路线不许先回到起点再进门（那是井型折返）。 */
 function returnsToStartBeforeWin(start: IceState, dirs: Dir[]): boolean {
   let s = start;
   const origin = `${start.player.r},${start.player.c}`;
@@ -44,33 +44,116 @@ function returnsToStartBeforeWin(start: IceState, dirs: Dir[]): boolean {
   return false;
 }
 
-const ROUTES: { id: number; one: Dir[]; three: Dir[] }[] = [
-  { id: 1, one: ['down'], three: ['right', 'down', 'left'] },
-  { id: 2, one: ['down'], three: ['right', 'down', 'left'] },
-  { id: 3, one: ['down'], three: ['right', 'down', 'left'] },
-  { id: 4, one: ['down'], three: ['right', 'right', 'down', 'left'] },
-  { id: 5, one: ['down'], three: ['right', 'down', 'left', 'down'] },
-  { id: 6, one: ['down'], three: ['right', 'down', 'left'] },
-  { id: 7, one: ['down'], three: ['right', 'down', 'left'] },
-  { id: 8, one: ['down'], three: ['right', 'down', 'left'] },
-  { id: 9, one: ['down'], three: ['right', 'down', 'left'] },
-  { id: 10, one: ['down'], three: ['right', 'down', 'left', 'down'] },
+function fullKey(s: IceState): string {
+  const boxes = s.boxes.map(cellKey).sort().join(';');
+  return `${s.player.r},${s.player.c}|${boxes}|${s.stars.map(cellKey).sort().join(';')}|${s.collected}|${s.won}`;
+}
+
+function shortestWin(start: IceState, collected: number): Dir[] | null {
+  const seen = new Set<string>([fullKey(start)]);
+  const q: { s: IceState; path: Dir[] }[] = [{ s: start, path: [] }];
+  while (q.length) {
+    const cur = q.shift()!;
+    if (cur.s.won && cur.s.collected === collected) return cur.path;
+    if (cur.s.won || cur.path.length > 18) continue;
+    for (const d of DIRS) {
+      const r = applyDir(cur.s, d);
+      if (r.kind === 'stuck' && r.state.player.r === cur.s.player.r && r.state.player.c === cur.s.player.c) {
+        continue;
+      }
+      const k = fullKey(r.state);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      q.push({ s: r.state, path: [...cur.path, d] });
+    }
+  }
+  return null;
+}
+
+/** 手写满星路：每关解法形状必须不同。 */
+const THREE: { id: number; dirs: Dir[] }[] = [
+  { id: 1, dirs: ['right', 'right', 'down', 'left', 'right', 'down', 'left'] },
+  { id: 2, dirs: ['right', 'down', 'right', 'left', 'up', 'down'] },
+  { id: 3, dirs: ['right', 'up', 'right', 'down', 'right', 'left', 'down'] },
+  { id: 4, dirs: ['right', 'right', 'up', 'right', 'down', 'left', 'up', 'right', 'down'] },
+  { id: 5, dirs: ['right', 'right', 'up', 'right', 'down', 'right', 'left', 'down'] },
+  { id: 6, dirs: ['right', 'right', 'up', 'right', 'left', 'up', 'right', 'down'] },
+  { id: 7, dirs: ['right', 'down', 'up', 'right', 'down', 'down', 'left', 'down'] },
+  { id: 8, dirs: ['up', 'right', 'down', 'down', 'right', 'down', 'left', 'down'] },
+  { id: 9, dirs: ['right', 'down', 'right', 'up', 'right', 'left', 'up'] },
+  { id: 10, dirs: ['right', 'down', 'left', 'up', 'right', 'up', 'left', 'up', 'right', 'down'] },
+  { id: 11, dirs: ['down', 'right', 'down', 'left', 'right', 'left', 'up', 'left', 'down', 'down', 'right', 'down'] },
+  { id: 12, dirs: ['right', 'right', 'up', 'left', 'left', 'right', 'down', 'left', 'up', 'right', 'down'] },
+  { id: 13, dirs: ['right', 'up', 'right', 'down', 'down', 'right', 'down', 'left', 'down'] },
+  {
+    id: 14,
+    dirs: [
+      'right',
+      'down',
+      'right',
+      'down',
+      'left',
+      'up',
+      'down',
+      'right',
+      'up',
+      'left',
+      'up',
+      'right',
+      'right',
+      'down',
+      'left',
+      'down',
+    ],
+  },
+  { id: 15, dirs: ['right', 'right', 'down', 'left', 'right', 'up', 'left', 'up', 'down'] },
 ];
 
-describe('ten levels path-manage with the box', () => {
-  for (const route of ROUTES) {
-    const def = LEVELS[route.id - 1]!;
-    it(`第${route.id}关 1 星空手进门`, () => {
-      const s = play(def.make(), route.one);
-      assert.equal(s.won, true);
-      assert.equal(s.collected, 0);
+describe('fifteen levels: 1/2/3 star routes and distinct 3-star', () => {
+  const threeSig = new Set<string>();
+
+  for (const def of LEVELS) {
+    it(`第${def.id}关 存在 1、2、3 星最短路`, () => {
+      const start = def.make();
+      const one = shortestWin(start, 0);
+      const two = shortestWin(start, 1);
+      const three = shortestWin(start, 2);
+      assert.ok(one, `L${def.id} 没有 1 星`);
+      assert.ok(two, `L${def.id} 没有 2 星`);
+      assert.ok(three, `L${def.id} 没有 3 星`);
+      assert.equal(canThreeStarsWithoutBox(start), false, `L${def.id} 不用箱子也能两颗星`);
+
+      const s1 = play(start, one);
+      const s2 = play(start, two);
+      const s3 = play(start, three);
+      assert.equal(ratingStars(s1), 1);
+      assert.equal(ratingStars(s2), 2);
+      assert.equal(ratingStars(s3), 3);
+      assert.equal(returnsToStartBeforeWin(start, three), false, `L${def.id} 满星折回起点 ${three.join(',')}`);
+      if (def.id <= 5) {
+        let s = start;
+        let pushes = 0;
+        for (const d of three) {
+          const r = applyDir(s, d);
+          if (r.kind === 'push') pushes += 1;
+          s = r.state;
+        }
+        assert.ok(pushes >= 1, `L${def.id} 满星应至少推一次箱子`);
+      }
     });
-    it(`第${route.id}关 3 星用箱子向前走`, () => {
-      assert.equal(canThreeStarsWithoutBox(def.make()), false, `L${route.id} 不用箱子也能吃两颗星`);
-      assert.equal(returnsToStartBeforeWin(def.make(), route.three), false, `L${route.id} 满星折回起点`);
-      const s = play(def.make(), route.three);
-      assert.equal(s.won, true);
-      assert.equal(ratingStars(s), 3, `L${route.id} rating=${ratingStars(s)} p=${s.player.r},${s.player.c}`);
+  }
+
+  for (const route of THREE) {
+    const def = LEVELS[route.id - 1]!;
+    it(`第${route.id}关 手写 3 星`, () => {
+      const start = def.make();
+      const sig = route.dirs.join(',');
+      assert.equal(threeSig.has(sig), false, `3 星解法重复: ${sig}`);
+      threeSig.add(sig);
+      assert.equal(returnsToStartBeforeWin(start, route.dirs), false);
+      const s = play(start, route.dirs);
+      assert.equal(s.won, true, `L${route.id} 未过关 p=${s.player.r},${s.player.c} col=${s.collected}`);
+      assert.equal(ratingStars(s), 3, `L${route.id} rating=${ratingStars(s)} col=${s.collected}`);
     });
   }
 });

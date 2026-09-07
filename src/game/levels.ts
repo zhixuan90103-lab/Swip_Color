@@ -31,96 +31,210 @@ function level(
   };
 }
 
-/**
- * 箱子当转弯钉：停在井口后往下，再沿底边吃第二颗星进门。
- * 满星是一条向前的 L，不回起点。
- */
-function turnL(opts: {
-  cols: number;
-  box: Cell;
-  stopC: number;
-  extraWalls?: Cell[];
-  extraBoxes?: Cell[];
-}): IceState {
-  const { cols, box, stopC, extraWalls = [], extraBoxes = [] } = opts;
-  return level(3, cols, {
-    player: at(0, 0),
-    boxes: [box, ...extraBoxes],
-    stars: [at(1, stopC), at(2, 1)],
-    door: at(2, 0),
-    walls: [at(1, stopC - 1), at(1, stopC + 1), ...extraWalls],
-  });
-}
-
+/** ① 撞停对齐底中门。 */
 export function makeLevel1(): IceState {
-  return turnL({ cols: 4, box: at(0, 3), stopC: 2 });
+  return level(5, 5, {
+    player: at(0, 0),
+    boxes: [at(0, 3), at(1, 4)],
+    stars: [at(2, 0), at(2, 4)],
+    door: at(4, 2),
+    walls: [at(3, 1), at(3, 3)],
+  });
 }
 
+/** ② 贴着推到头，再绕去吃星进门。 */
 export function makeLevel2(): IceState {
-  return turnL({ cols: 4, box: at(0, 1), stopC: 2 });
+  return level(5, 6, {
+    player: at(1, 0),
+    boxes: [at(1, 1), at(1, 5)],
+    stars: [at(0, 2), at(3, 5)],
+    door: at(4, 2),
+    walls: [at(2, 0), at(3, 1), at(4, 1), at(4, 3), at(0, 5)],
+  });
 }
 
+/** 右推到 B，绕北再下推到 C，回头进门。 */
 export function makeLevel3(): IceState {
-  return turnL({ cols: 6, box: at(0, 5), stopC: 4 });
+  return level(5, 6, {
+    player: at(1, 0),
+    boxes: [at(1, 1), at(1, 5)],
+    stars: [at(0, 4), at(3, 5)],
+    door: at(4, 2),
+    walls: [at(2, 0), at(3, 1), at(4, 1), at(4, 3), at(0, 5)],
+  });
 }
 
+/** 枢纽钉：中间箱先别推，多面撞停。 */
 export function makeLevel4(): IceState {
-  return turnL({ cols: 6, box: at(0, 3), stopC: 4 });
+  return level(5, 5, {
+    player: at(2, 0),
+    boxes: [at(2, 2), at(3, 3)],
+    stars: [at(0, 2), at(2, 4)],
+    door: at(4, 2),
+    walls: [at(4, 1), at(4, 3), at(0, 3)],
+  });
 }
 
-/** 顶刹 + 底刹：停两回，最后一格才是门。 */
+/** 先 ① 停住，走开，再回来 ② 同一只。 */
 export function makeLevel5(): IceState {
-  return level(4, 5, {
-    player: at(0, 0),
-    boxes: [at(0, 3), at(3, 2)],
-    stars: [at(1, 2), at(2, 1)],
-    door: at(3, 0),
-    walls: [at(1, 1), at(1, 3)],
+  return level(5, 6, {
+    player: at(1, 0),
+    boxes: [at(1, 2), at(1, 5)],
+    stars: [at(0, 4), at(3, 5)],
+    door: at(4, 2),
+    walls: [at(2, 0), at(3, 1), at(4, 1), at(4, 3), at(0, 5)],
   });
 }
 
+/** 枢纽用完再推走。 */
 export function makeLevel6(): IceState {
-  return turnL({ cols: 6, box: at(0, 5), stopC: 4, extraWalls: [at(2, 5)] });
+  return level(5, 5, {
+    player: at(2, 0),
+    boxes: [at(2, 2), at(3, 3), at(0, 4)],
+    stars: [at(0, 2), at(1, 4)],
+    door: at(4, 2),
+    walls: [at(4, 1), at(4, 3), at(0, 3)],
+  });
 }
 
+/** 先当刹车，再推到门列。 */
 export function makeLevel7(): IceState {
-  return turnL({ cols: 5, box: at(0, 1), stopC: 2, extraBoxes: [at(0, 4)] });
+  return level(6, 6, {
+    player: at(1, 0),
+    boxes: [at(1, 2), at(4, 5)],
+    stars: [at(0, 4), at(5, 1)],
+    door: at(5, 3),
+    walls: [at(2, 0), at(4, 2), at(5, 2), at(5, 4)],
+  });
 }
 
-/** 推的路上吃一颗，再转弯吃第二颗进门。 */
+/** 偏置枢纽：钉子不在正中。 */
 export function makeLevel8(): IceState {
-  return level(3, 4, {
-    player: at(0, 0),
-    boxes: [at(0, 1)],
-    stars: [at(0, 2), at(2, 1)],
-    door: at(2, 0),
-    walls: [at(1, 1), at(1, 3)],
+  return level(5, 6, {
+    player: at(2, 0),
+    boxes: [at(2, 3), at(4, 1)],
+    stars: [at(0, 3), at(2, 5)],
+    door: at(4, 4),
+    walls: [at(4, 3), at(4, 5), at(0, 4)],
   });
 }
 
+/** 从下往上推到再推，门在顶边。 */
 export function makeLevel9(): IceState {
-  return turnL({ cols: 4, box: at(0, 3), stopC: 2, extraWalls: [at(2, 3)] });
-}
-
-export function makeLevel10(): IceState {
-  return level(4, 5, {
-    player: at(0, 0),
-    boxes: [at(0, 3), at(3, 2)],
-    stars: [at(1, 2), at(2, 1)],
-    door: at(3, 0),
-    walls: [at(1, 1), at(1, 3), at(2, 4), at(1, 4)],
+  return level(5, 6, {
+    player: at(3, 0),
+    boxes: [at(3, 1), at(3, 5)],
+    stars: [at(4, 4), at(1, 5)],
+    door: at(0, 2),
+    walls: [at(2, 0), at(1, 1), at(0, 1), at(0, 3), at(4, 5)],
   });
 }
 
-export const LEVELS: LevelDef[] = [
-  { id: 1, title: '转弯钉', hint: '向右撞箱停住，往下吃星，再向左进门。不要原路回去。', make: makeLevel1 },
-  { id: 2, title: '推着转', hint: '贴着推，人停在转弯格，再下、再左。', make: makeLevel2 },
-  { id: 3, title: '远钉', hint: '箱子更远，还是撞停再转。', make: makeLevel3 },
-  { id: 4, title: '滑到再推', hint: '先滑到贴箱，再推到转弯格。', make: makeLevel4 },
-  { id: 5, title: '两颗钉', hint: '上面撞一次，下面再撞一次，最后才进门。', make: makeLevel5 },
-  { id: 6, title: '多一块', hint: '底下一块墙不挡路，还是撞停再转。', make: makeLevel6 },
-  { id: 7, title: '顶住', hint: '近箱推到远箱上，人刚好停在转弯格。', make: makeLevel7 },
-  { id: 8, title: '推路上的星', hint: '推的时候就吃掉一颗，再下、再左。', make: makeLevel8 },
-  { id: 9, title: '死角', hint: '右下是墙，满星仍是右、下、左。', make: makeLevel9 },
-  { id: 10, title: '两钉加墙', hint: '上面撞、下面撞，右边的墙不用管。', make: makeLevel10 },
+/** 先停后推，门偏右。 */
+export function makeLevel10(): IceState {
+  return level(5, 6, {
+    player: at(1, 0),
+    boxes: [at(1, 2), at(1, 5)],
+    stars: [at(0, 4), at(3, 5)],
+    door: at(4, 4),
+    walls: [at(2, 0), at(4, 3), at(4, 5), at(0, 5)],
+  });
+}
+
+/** 从上往下撞枢纽。 */
+export function makeLevel11(): IceState {
+  return level(5, 5, {
+    player: at(0, 2),
+    boxes: [at(2, 2), at(3, 3)],
+    stars: [at(2, 0), at(2, 4)],
+    door: at(4, 2),
+    walls: [at(4, 1), at(4, 3), at(1, 4)],
+  });
+}
+
+/** 枢纽钉多一只闲箱挡边。 */
+export function makeLevel12(): IceState {
+  return level(5, 5, {
+    player: at(2, 0),
+    boxes: [at(2, 2), at(3, 3), at(1, 1)],
+    stars: [at(0, 2), at(2, 4)],
+    door: at(4, 2),
+    walls: [at(4, 1), at(4, 3), at(0, 3)],
+  });
+}
+
+/** 偏心钉，多一只顶上的闲箱。 */
+export function makeLevel13(): IceState {
+  return level(5, 6, {
+    player: at(2, 0),
+    boxes: [at(2, 3), at(4, 1), at(0, 1)],
+    stars: [at(0, 3), at(2, 5)],
+    door: at(4, 4),
+    walls: [at(4, 3), at(4, 5), at(0, 4)],
+  });
+}
+
+/** 先停后推，顶上多一只箱。 */
+export function makeLevel14(): IceState {
+  return level(5, 6, {
+    player: at(1, 0),
+    boxes: [at(1, 2), at(1, 5), at(0, 3)],
+    stars: [at(0, 4), at(3, 5)],
+    door: at(4, 2),
+    walls: [at(2, 0), at(3, 1), at(4, 1), at(4, 3), at(0, 5)],
+  });
+}
+
+/** 枢纽两次 + 推到 C + 再刹车进门。 */
+export function makeLevel15(): IceState {
+  return level(6, 6, {
+    player: at(2, 0),
+    boxes: [at(2, 2), at(0, 5), at(5, 4)],
+    stars: [at(0, 2), at(4, 0)],
+    door: at(5, 2),
+    walls: [at(5, 1), at(5, 3), at(1, 3), at(3, 1)],
+  });
+}
+
+const META: { title: string; hint: string }[] = [
+  { title: '撞停', hint: '撞到箱子会停。停在门前那一列再进去。' },
+  { title: '贴着推', hint: '贴着再滑，箱子跟人一起走。' },
+  { title: '推到再推', hint: '先推到头，绕过去再推一次。空出来的路可以走回去。' },
+  { title: '枢纽', hint: '中间那只箱先别推。从不同方向撞停。' },
+  { title: '先停后推', hint: '先撞停。走开把路走通，再回来推同一只。' },
+  { title: '用完再走', hint: '同一只钉先当枢纽，再推到新位置接着用。' },
+  { title: '停完再搬', hint: '先当刹车用完，再把它推到门前。' },
+  { title: '偏心钉', hint: '车站不在正中间。先找到能停的那一格。' },
+  { title: '从下往上', hint: '先往右推到头，绕下去再往上推。回头进顶门。' },
+  { title: '门偏右', hint: '先停后推。门在右下，停点不一样。' },
+  { title: '从上往下', hint: '人在顶上。往下撞那只枢纽钉。' },
+  { title: '闲箱', hint: '多一只箱堵着角。中间那只还是枢纽。' },
+  { title: '顶上闲箱', hint: '偏心钉。顶上多一只箱，绕路吃星。' },
+  { title: '星在角', hint: '先停后推。顶上多一只箱挡路。' },
+  { title: '收束', hint: '枢纽、推走、再停，三步进门。' },
 ];
+
+const MAKES = [
+  makeLevel1,
+  makeLevel2,
+  makeLevel3,
+  makeLevel4,
+  makeLevel5,
+  makeLevel6,
+  makeLevel7,
+  makeLevel8,
+  makeLevel9,
+  makeLevel10,
+  makeLevel11,
+  makeLevel12,
+  makeLevel13,
+  makeLevel14,
+  makeLevel15,
+];
+
+export const LEVELS: LevelDef[] = MAKES.map((make, i) => ({
+  id: i + 1,
+  title: META[i]!.title,
+  hint: META[i]!.hint,
+  make,
+}));

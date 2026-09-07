@@ -8,7 +8,7 @@
 **TypeScript + Three.js WebGPU + Vite + Capacitor iOS** 竖屏手游稳健底座。  
 设计空间固定 **390×844**，contain letterbox；桌面可切手机/Pad 预览；`base: './'` 保证真机资源路径。
 
-现行玩法：**冰面推箱**（十关连续）。规则见 [docs/ICE-PUZZLE.md](docs/ICE-PUZZLE.md)。关卡见 [docs/LEVEL-TEMPLATES.md](docs/LEVEL-TEMPLATES.md)。出手沿用旧 2048 **手感 2**。
+现行玩法：**冰面推箱**（十五关连续）。规则见 [docs/ICE-PUZZLE.md](docs/ICE-PUZZLE.md)。关卡见 [docs/LEVEL-TEMPLATES.md](docs/LEVEL-TEMPLATES.md)。出手沿用旧 2048 **手感 2**。
 
 ## 入口地图
 
@@ -27,7 +27,7 @@
 | iOS 注入 | `scripts/bootstrap-ios.mjs` |
 | 音效管道 | `docs/AUDIO.md` · `src/audio/*` · `plugins/native-audio/` |
 | 玩法规范 | `docs/ICE-PUZZLE.md` |
-| 十关 | `docs/LEVEL-TEMPLATES.md` · `src/game/levels.ts` |
+| 十五关 | `docs/LEVEL-TEMPLATES.md` · `src/game/levels.ts` |
 | 文档索引 | `docs/README.md` |
 
 ## DOM（勿拆）
