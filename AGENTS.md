@@ -27,6 +27,7 @@
 | iOS 注入 | `scripts/bootstrap-ios.mjs` |
 | 音效管道 | `docs/AUDIO.md` · `src/audio/*` · `plugins/native-audio/` |
 | 玩法规范 | `docs/ICE-PUZZLE.md` |
+| 出题知识 | `docs/LEVEL-KNOWLEDGE.md` |
 | 十五关 | `docs/LEVEL-TEMPLATES.md` · `src/game/levels.ts` |
 | 文档索引 | `docs/README.md` |
 
