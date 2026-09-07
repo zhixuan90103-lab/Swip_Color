@@ -6,7 +6,8 @@
 |------|------|
 | [AGENTS.md](./AGENTS.md) | AI / 新窗口第一入口 |
 | [docs/README.md](./docs/README.md) | **docs 索引与规范优先级** |
-| [docs/ICE-PUZZLE.md](./docs/ICE-PUZZLE.md) | 冰面推箱玩法（尚未写进代码） |
+| [docs/ICE-PUZZLE.md](./docs/ICE-PUZZLE.md) | **冰面推箱规则真源** |
+| [docs/LEVEL-TEMPLATES.md](./docs/LEVEL-TEMPLATES.md) | **现行十关** |
 | [docs/ENGINEERING.md](./docs/ENGINEERING.md) | 底座打包 / 适配 |
 | [docs/HAPTICS.md](./docs/HAPTICS.md) | 震动接入 |
 
@@ -18,7 +19,7 @@ npm run dev
 # → http://127.0.0.1:5210/
 ```
 
-应看到：桌面手机框、空白 390×844 舞台。右上角 **手机/Pad** 切换。旧 2048 / 贪吃蛇已移除。
+应看到：桌面手机框、冰面推箱第 1 关。右上角 **手机/Pad** 切换。滑动出手与旧 2048 手感 2 相同（要甩，慢拖不走）。十关可连续「下一关」。
 
 ## iOS 真机
 
@@ -36,5 +37,5 @@ npm run cap:open
 
 1. 复制本目录  
 2. 改 `capacitor.config.ts` 的 `appId` / `appName`  
-3. 按 [docs/ICE-PUZZLE.md](./docs/ICE-PUZZLE.md) 在 `src/game/*` 写玩法，从 `src/main.ts` 挂上  
+3. 玩法在 `src/game/*`，规则见 [docs/ICE-PUZZLE.md](./docs/ICE-PUZZLE.md)  
 4. **保留** adapt / create-renderer / haptics / plugins / `base: './'`  

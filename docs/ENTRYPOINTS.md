@@ -21,6 +21,7 @@ index.html
        → mountDevicePreview → computeStageLayout → applyStageTransform
        → watchStageLayout
        → audio.preload + 首次 pointer unlock
+       → startIceGame(#ui-root)
 ```
 
 ## 3. DOM

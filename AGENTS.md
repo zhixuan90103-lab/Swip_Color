@@ -8,7 +8,7 @@
 **TypeScript + Three.js WebGPU + Vite + Capacitor iOS** 竖屏手游稳健底座。  
 设计空间固定 **390×844**，contain letterbox；桌面可切手机/Pad 预览；`base: './'` 保证真机资源路径。
 
-现行 **无已接入玩法**。冰面推箱规则见 [docs/ICE-PUZZLE.md](docs/ICE-PUZZLE.md)。
+现行玩法：**冰面推箱**（十关连续）。规则见 [docs/ICE-PUZZLE.md](docs/ICE-PUZZLE.md)。关卡见 [docs/LEVEL-TEMPLATES.md](docs/LEVEL-TEMPLATES.md)。出手沿用旧 2048 **手感 2**。
 
 ## 入口地图
 
@@ -27,6 +27,7 @@
 | iOS 注入 | `scripts/bootstrap-ios.mjs` |
 | 音效管道 | `docs/AUDIO.md` · `src/audio/*` · `plugins/native-audio/` |
 | 玩法规范 | `docs/ICE-PUZZLE.md` |
+| 十关 | `docs/LEVEL-TEMPLATES.md` · `src/game/levels.ts` |
 | 文档索引 | `docs/README.md` |
 
 ## DOM（勿拆）
@@ -46,7 +47,7 @@
 4. **布局坐标 390×844**；禁止 `renderer.setSize(window.innerWidth,…)`  
 5. **UI 只挂 `#ui-root`**；禁止玩法 UI `position: fixed` 贴浏览器窗  
 6. **Pad 只改外层视口**，不改 `DESIGN_*`  
-7. **改 Swift 改 `plugins/native-haptics/` 或 `plugins/native-audio/`** 再 `ios:bootstrap`。震动见 `docs/HAPTICS.md`；音效见 `docs/AUDIO.md`。Capacitor 8 的 `SceneDelegate` 必须 `rootViewController = BridgeViewController()`（默认 `CAPBridgeViewController` 不会注册插件）。不要用 JS `prepare()` 判断是否接上；真机 HUD 看 `plugin: true` + 点「点我震动」。  
+7. **改 Swift 改 `plugins/native-haptics/` 或 `plugins/native-audio/`** 再 `ios:bootstrap`。震动见 `docs/HAPTICS.md`；音效见 `docs/AUDIO.md`。Capacitor 8 的 `SceneDelegate` 必须 `rootViewController = BridgeViewController()`。真机验收：局内「震」按钮。  
 8. **无 WebGPU 则明确失败**，不静默 WebGL  
 9. **音效** 禁止热路径 `new Audio()` / 每发一次桥；iOS 生产禁止 WebAudio。  
 
@@ -67,9 +68,10 @@ npm run ios
 
 ## 业务怎么加
 
-- 玩法：按 `docs/ICE-PUZZLE.md` 写 `src/game/*`，从 `src/main.ts` 挂上  
+- 玩法：改 `src/game/*`，规则以 `docs/ICE-PUZZLE.md` 为准  
+- 出手：手感 2（`swipeInput.ts` + `FEEL2_DEFAULT`），不要另写薄滑动替换它  
 - 保留：adapt / create-renderer / haptics / plugins / `base`  
-- 触控：`clientToDesign` + 忽略 letterbox 外  
+- 触控：忽略 letterbox 外；关卡矩形铺满冰格，非必要不放墙、不挖空  
 - 音效：按 `docs/AUDIO.md`  
 
 ## 刻意不做

@@ -5,7 +5,7 @@
   --design-w: 390;
   --design-h: 844;
   --shell-bg: #12141c;
-  --stage-bg: #faf8ef;
+  --stage-bg: #d9ecf7;
 
   /* Desktop sim; native overrides with env() */
   --safe-top: 59px;
@@ -87,7 +87,7 @@ body {
   width: 390px;
   height: 844px;
   overflow: hidden;
-  background: #faf8ef;
+  background: var(--stage-bg);
   outline: none;
   will-change: transform;
 }
@@ -294,5 +294,196 @@ button:active {
   pointer-events: auto;
   align-self: stretch;
   margin-top: auto;
+}
+
+.ice-app {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  pointer-events: none;
+  color: #16324a;
+}
+
+.ice-hud {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.ice-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.ice-stars {
+  margin-left: auto;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  color: #d97706;
+}
+
+.ice-restart,
+.ice-haptic {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: #2b6cb0;
+  color: #fff;
+  font-size: 13px;
+}
+
+.ice-haptic {
+  background: #64748b;
+}
+
+.ice-board-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ice-board-frame {
+  box-sizing: content-box;
+  padding: 10px;
+  border: 8px solid #4a7fa3;
+  border-radius: 18px;
+  background: #8ebfd6;
+  box-shadow: 0 8px 0 #3d6a8a;
+}
+
+.ice-board {
+  position: relative;
+  box-sizing: content-box;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.ice-cell {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+}
+
+.ice-cell.is-ice {
+  background: #cfeaf8;
+}
+
+.ice-cell.is-wall {
+  background: #4a7fa3;
+}
+
+.ice-cell.is-door {
+  background: #34d399;
+  box-shadow: inset 0 0 0 3px #059669;
+}
+
+.ice-star,
+.ice-box,
+.ice-you {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: transform 70ms linear;
+}
+
+.ice-star {
+  color: #f59e0b;
+  font-size: 26px;
+  pointer-events: none;
+}
+
+.ice-star.gone {
+  opacity: 0;
+}
+
+.ice-box {
+  background: #b45309;
+  box-shadow: 0 4px 0 #7c2d12;
+  z-index: 3;
+}
+
+.ice-you {
+  background: #1d4ed8;
+  box-shadow: 0 4px 0 #1e3a8a;
+  z-index: 4;
+}
+
+.ice-you::after {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #93c5fd;
+}
+
+.ice-hint {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.ice-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 40, 60, 0.45);
+  pointer-events: auto;
+}
+
+.ice-overlay.hidden {
+  display: none;
+}
+
+.ice-card {
+  width: 260px;
+  padding: 22px 18px;
+  border-radius: 16px;
+  background: #f8fbff;
+  text-align: center;
+}
+
+.ice-over-kicker {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.ice-over-stars {
+  margin: 8px 0 16px;
+  font-size: 32px;
+  letter-spacing: 0.12em;
+  color: #d97706;
+}
+
+.ice-over-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.ice-next {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: #047857;
+  color: #fff;
+  font-size: 13px;
 }
 
