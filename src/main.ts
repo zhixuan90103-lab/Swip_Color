@@ -1,5 +1,5 @@
 /**
- * Boot: adapt + WebGPU stage + 2048 (DOM on #ui-root).
+ * Boot: adapt + WebGPU stage. 玩法尚未接入（规范见 docs/ICE-PUZZLE.md）。
  */
 
 import * as THREE from 'three';
@@ -16,7 +16,7 @@ import { mountDevicePreview } from './adapt/devicePreview';
 import { applyNativeClass, applySafeAreaCssVars } from './adapt/safeArea';
 import { audio } from './audio/AudioManager';
 import { createRenderer, resizeToDesign } from './create-renderer';
-import { startGame2048 } from './game/game2048';
+import { haptics } from './utils/haptics';
 
 async function boot(): Promise<void> {
   applyNativeClass();
@@ -59,9 +59,19 @@ async function boot(): Promise<void> {
   window.addEventListener('pointerdown', unlock, { once: true, capture: true });
   void audio.preload();
 
-  const game = startGame2048({
-    stage,
-    uiRoot,
+  uiRoot.innerHTML = `
+    <div class="panel shell-hud">
+      <p class="status" id="haptic-status">plugin: ${String(haptics.isPluginAvailable())}</p>
+      <button type="button" class="haptic-primary" id="haptic-tap">点我震动</button>
+    </div>
+  `;
+  uiRoot.querySelector('#haptic-tap')!.addEventListener('click', () => {
+    void haptics.impact('medium').then((r) => {
+      const el = document.getElementById('haptic-status');
+      if (el) {
+        el.textContent = `plugin: ${String(haptics.isPluginAvailable())} ${r.ok ? 'ok' : (r.reason ?? '')}`;
+      }
+    });
   });
 
   renderer.setAnimationLoop(() => {
@@ -71,7 +81,6 @@ async function boot(): Promise<void> {
   window.addEventListener(
     'pagehide',
     () => {
-      game.dispose();
       audio.dispose();
       unwatch();
       preview.dispose();

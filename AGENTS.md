@@ -1,12 +1,14 @@
 # AGENTS.md — portrait-webgpu-base
 
 > **打开本仓库时的第一入口。**  
-> 合并自 **niantu**（适配/TS/预览）+ **three-webgpu-cap-shell**（打包/文档/bootstrap/可验证 demo）。
+> 合并自 **niantu**（适配/TS/预览）+ **three-webgpu-cap-shell**（打包/文档/bootstrap）。
 
 ## 一句话
 
 **TypeScript + Three.js WebGPU + Vite + Capacitor iOS** 竖屏手游稳健底座。  
 设计空间固定 **390×844**，contain letterbox；桌面可切手机/Pad 预览；`base: './'` 保证真机资源路径。
+
+现行 **无已接入玩法**。冰面推箱规则见 [docs/ICE-PUZZLE.md](docs/ICE-PUZZLE.md)。
 
 ## 入口地图
 
@@ -23,16 +25,9 @@
 | Capacitor | `capacitor.config.ts`（`contentInset: never`） |
 | 构建 | `vite.config.ts`（**`base: './'`**） |
 | iOS 注入 | `scripts/bootstrap-ios.mjs` |
-| 音效 | `docs/AUDIO.md` · `src/audio/*` · `src/utils/gameSfx.ts` · `plugins/native-audio/` |
-| 同手势调研 | `docs/SWIPE-GESTURE.md` |
-| 手势有效来源 | `docs/SWIPE-SOURCES.md` |
-| 四向手势状态机 | `docs/SWIPE-DESIGN.md` |
+| 音效管道 | `docs/AUDIO.md` · `src/audio/*` · `plugins/native-audio/` |
+| 玩法规范 | `docs/ICE-PUZZLE.md` |
 | 文档索引 | `docs/README.md` |
-| 现行实现 | `docs/IMPLEMENTATION.md` |
-| 方块运动 | `docs/MOTION.md` |
-| 最佳手感检索 | `docs/SWIPE-RESEARCH-2026-09.md` |
-| 原版 UI 实测 | `docs/UI-ORIGINAL.md` |
-| 手感回路 | `docs/FEEL-LOOP.md` |
 
 ## DOM（勿拆）
 
@@ -59,7 +54,7 @@
 
 ```bash
 npm install
-npm run dev           # http://127.0.0.1:5204/
+npm run dev           # http://127.0.0.1:5210/
 npm run test
 npm run build
 npm run cap:sync
@@ -72,13 +67,12 @@ npm run ios
 
 ## 业务怎么加
 
-- 玩法：改 `src/main.ts` 或 `src/game/*`  
+- 玩法：按 `docs/ICE-PUZZLE.md` 写 `src/game/*`，从 `src/main.ts` 挂上  
 - 保留：adapt / create-renderer / haptics / plugins / `base`  
 - 触控：`clientToDesign` + 忽略 letterbox 外  
-- 音效：按 `docs/AUDIO.md`；设置切音效1/2；合优先于滑，出手即播  
+- 音效：按 `docs/AUDIO.md`  
 
 ## 刻意不做
 
 - Android（可后加）  
 - WebGL 静默回退  
-- 系统 UISwipe；用速度/轨迹插值 **判方向**  

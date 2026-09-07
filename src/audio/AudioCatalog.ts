@@ -1,7 +1,7 @@
 /**
  * 音效1：UI SFX Minimal 短 tick（v2）
- * 音效2：iOS 长按图标那种干咔（v3，~2 kHz / 90ms）
- * 规则：合优先于滑；多组合并只播最高档；出手即播。
+ * 音效2：iOS 长按图标那种干咔（v3）
+ * 事件 id 仍是旧合成游戏遗留，玩法接入时再改。
  */
 
 export const MAX_SFX_PER_FRAME = 8;

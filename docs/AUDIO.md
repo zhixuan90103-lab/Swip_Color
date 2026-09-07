@@ -1,6 +1,8 @@
 # 音效
 
-配套：[AGENTS.md](../AGENTS.md) · [ENGINEERING.md](./ENGINEERING.md) · [IMPLEMENTATION.md](./IMPLEMENTATION.md)
+配套：[AGENTS.md](../AGENTS.md) · [ENGINEERING.md](./ENGINEERING.md)
+
+旧合成玩法已删除。下文事件表（slide/merge 等）是音效管道遗留，新玩法接 `AudioManager` 时再改目录。
 
 桌面 **WebAudio**；iOS **`plugins/native-audio/`**（AVAudioEngine）。热路径禁止 `new Audio()`、禁止每发一次桥、iOS 生产禁止 WebAudio。
 
@@ -8,28 +10,13 @@ iOS session：`.ambient` + `.mixWithOthers`（与后台音乐共存）。**不�
 
 ---
 
-## 0. 现行产品
+## 0. 现状
 
-设置里两套，默认 **音效2**。`localStorage swipe2048.sfx.pack`。
+管道还在：两套样本 `public/sfx/v2/`、`public/sfx/v3/`，`AudioCatalog` 事件名仍是旧合成游戏的 slide/merge/nudge。**没有设置面板，没有玩法在播。** 新玩法接上时改目录和事件名。
 
-| | 音效1 短tick | 音效2 长按（默认） |
-|--|--|--|
-| 目录 | `public/sfx/v2/` | `public/sfx/v3/` |
-| 气质 | UI SFX Minimal（CC0） | iOS 长按图标那种干咔 |
-| 合/滑样本 | `snap` 按档升音 | ~2 kHz 合成 pop，起音圆、少齿音 |
-| 生成 | 从 uisfx 转 wav | `scripts/synth-ios-pop.py` |
+`localStorage` 键名仍是遗留的 `swipe2048.sfx.pack`。
 
-**播放规则（两套相同）**
-
-1. 有效滑动：有合并 → **只播最高一块的合**；没有 → 播滑。  
-2. 合后下一次滑沿用该档音高（同一声部）。  
-3. 出手即播，不等滑移/弹峰。  
-4. 同时只保留一条合/滑；新声起、旧声约 18ms 让路。  
-5. 无效回弹 `nudge`；菜单 `ui`。过关/失败对准结算，可略晚。
-
-合档（新块数字）：4→0 … 2048→9，C 大调台阶。
-
-业务只调 `gameSfx.*`，不碰播放器。
+业务调 `audio.playSfx`（`AudioManager`），不碰后端。
 
 ---
 
@@ -45,7 +32,7 @@ iOS session：`.ambient` + `.mixWithOthers`（与后台音乐共存）。**不�
 
 | 层 | 路径 |
 |----|------|
-| 业务 | `src/utils/gameSfx.ts` |
+| 业务 | 玩法层（尚未接入；调 `audio.playSfx`） |
 | 门面 | `src/audio/AudioManager.ts` |
 | 目录 | `src/audio/AudioCatalog.ts` |
 | 批处理 | `src/audio/AudioBatcher.ts`（微任务，有单测） |
@@ -59,7 +46,7 @@ iOS session：`.ambient` + `.mixWithOthers`（与后台音乐共存）。**不�
 ## 3. 流水线
 
 ```
-gameSfx.merge / slide / nudge / ui
+audio.playSfx(...)
   → 关音 / 未 ready 则排队
   → AudioBatcher（同 key 本拍一条；合挤掉滑）
   → 微任务 flush（绘制前）
@@ -70,7 +57,4 @@ gameSfx.merge / slide / nudge / ui
 
 ## 4. 验收
 
-- 设置切 **音效1 / 音效2**，点一下有预听。  
-- 滑、合、撞墙立刻有声，合比滑优先。  
-- 合 4、8、16 能听出台阶。  
-- 真机：插件与震动一样要 `BridgeViewController`；不要用 WebAudio。
+玩法未接，没有切套装 / 预听 / 合成台阶可验。真机音频插件与震动一样要 `BridgeViewController`；iOS 生产不要用 WebAudio。

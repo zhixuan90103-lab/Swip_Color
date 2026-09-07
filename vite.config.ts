@@ -8,12 +8,12 @@ export default defineConfig({
   base: './',
   server: {
     host: true,
-    port: 5204,
+    port: 5210,
     strictPort: true,
   },
   preview: {
     host: true,
-    port: 5204,
+    port: 5210,
     strictPort: true,
   },
   build: {

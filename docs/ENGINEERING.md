@@ -1,10 +1,10 @@
 # Engineering — portrait-webgpu-base
 
-配套：[AGENTS.md](../AGENTS.md) · [README.md](./README.md) · [IMPLEMENTATION.md](./IMPLEMENTATION.md) · [MOTION.md](./MOTION.md) · [ENTRYPOINTS.md](./ENTRYPOINTS.md) · [MERGE.md](./MERGE.md) · [AUDIO.md](./AUDIO.md) · [HAPTICS.md](./HAPTICS.md)
+配套：[AGENTS.md](../AGENTS.md) · [README.md](./README.md) · [ICE-PUZZLE.md](./ICE-PUZZLE.md) · [ENTRYPOINTS.md](./ENTRYPOINTS.md) · [MERGE.md](./MERGE.md) · [AUDIO.md](./AUDIO.md) · [HAPTICS.md](./HAPTICS.md)
 
 ## 1. 定位
 
-可复制的 **竖屏 WebGPU 手游底座**：能 dev、能 build、能真机、能震动、桌面≈手机/Pad。本仓库玩法在 `src/game/*`（2048 + 涂色），底座约定仍有效。
+可复制的 **竖屏 WebGPU 手游底座**：能 dev、能 build、能真机、能震动、桌面≈手机/Pad。玩法规范见 [ICE-PUZZLE.md](./ICE-PUZZLE.md)，代码尚未接入。
 
 ## 2. 目录
 
@@ -14,11 +14,10 @@ portrait-webgpu-base/
 ├── README.md
 ├── docs/
 ├── index.html
-├── vite.config.ts          # base: './' · port 5204
+├── vite.config.ts          # base: './' · port 5210
 ├── capacitor.config.ts     # contentInset never · scrollEnabled false
 ├── src/
-│   ├── main.ts             # 启动游戏
-│   ├── game/               # 2048 / 涂色 / 手势
+│   ├── main.ts             # 启动底座（玩法未挂）
 │   ├── create-renderer.ts
 │   ├── style.css
 │   ├── adapt/
@@ -27,8 +26,7 @@ portrait-webgpu-base/
 │   │   └── safeArea.ts
 │   ├── audio/              # Catalog / Batcher / Manager / backends
 │   └── utils/
-│       ├── haptics.ts
-│       └── gameSfx.ts
+│       └── haptics.ts
 ├── plugins/native-haptics/
 ├── plugins/native-audio/
 └── scripts/bootstrap-ios.mjs
@@ -42,7 +40,7 @@ portrait-webgpu-base/
 |----|-----|------|
 | `base` | `'./'` | Capacitor 相对路径 |
 | `outDir` | `dist` | = webDir |
-| `port` | `5204` | 固定端口（避开其它工程的 5190） |
+| `port` | `5210` | 固定端口（避开其它工程的 5204 / 5190） |
 | `target` | `es2022` | WebGPU |
 
 ### Capacitor
@@ -154,3 +152,4 @@ npm run cap:sync
 | 2026-08-14 | 增加 HAPTICS.md：震动一次接对 |
 | 2026-08-31 | 真机震动验通。根因：Capacitor 8 `SceneDelegate` 绕过 storyboard。bootstrap 现会改 SceneDelegate；HUD 用「点我震动」+ `plugin` 标志验收 |
 | 2026-09-02 | 音效落地：两套（短 tick / 长按咔），合优先于滑，出手即播。见 AUDIO.md |
+| 2026-09-07 | 删除 2048 / 贪吃蛇 / 手感代码与文档。玩法规范改 ICE-PUZZLE.md；舞台先空，保留震动验收 HUD |
