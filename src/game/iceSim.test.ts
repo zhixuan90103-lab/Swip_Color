@@ -73,16 +73,16 @@ function shortestWin(start: IceState, collected: number): Dir[] | null {
 /** 手写满星路：每关解法形状必须不同。 */
 const THREE: { id: number; dirs: Dir[] }[] = [
   { id: 1, dirs: ['right', 'right', 'down', 'left', 'right', 'down', 'left'] },
-  { id: 2, dirs: ['right', 'down', 'right', 'left', 'up', 'down'] },
-  { id: 3, dirs: ['right', 'up', 'right', 'down', 'right', 'left', 'down'] },
-  { id: 4, dirs: ['right', 'right', 'up', 'right', 'down', 'left', 'up', 'right', 'down'] },
-  { id: 5, dirs: ['right', 'right', 'up', 'right', 'down', 'right', 'left', 'down'] },
-  { id: 6, dirs: ['right', 'right', 'up', 'right', 'left', 'up', 'right', 'down'] },
-  { id: 7, dirs: ['right', 'down', 'up', 'right', 'down', 'down', 'left', 'down'] },
-  { id: 8, dirs: ['up', 'right', 'down', 'down', 'right', 'down', 'left', 'down'] },
+  { id: 2, dirs: ['down', 'left', 'down', 'up', 'right', 'left'] },
+  { id: 3, dirs: ['left', 'down', 'left', 'up', 'left', 'right', 'up'] },
+  { id: 4, dirs: ['up', 'up', 'left', 'up', 'right', 'down', 'left', 'up', 'right'] },
+  { id: 5, dirs: ['up', 'up', 'left', 'up', 'right', 'up', 'down', 'right'] },
+  { id: 6, dirs: ['left', 'left', 'down', 'left', 'right', 'down', 'left', 'up'] },
+  { id: 7, dirs: ['up', 'right', 'left', 'up', 'right', 'right', 'down', 'right'] },
+  { id: 8, dirs: ['left', 'up', 'right', 'right', 'up', 'right', 'down', 'right'] },
   { id: 9, dirs: ['right', 'down', 'right', 'up', 'right', 'left', 'up'] },
-  { id: 10, dirs: ['right', 'down', 'left', 'up', 'right', 'up', 'left', 'up', 'right', 'down'] },
-  { id: 11, dirs: ['down', 'right', 'down', 'left', 'right', 'left', 'up', 'left', 'down', 'down', 'right', 'down'] },
+  { id: 10, dirs: ['left', 'up', 'right', 'down', 'left', 'down', 'right', 'down', 'left', 'up'] },
+  { id: 11, dirs: ['left', 'down', 'left', 'up', 'down', 'up', 'right', 'up', 'left', 'left', 'down', 'left'] },
   { id: 12, dirs: ['right', 'right', 'up', 'left', 'left', 'right', 'down', 'left', 'up', 'right', 'down'] },
   { id: 13, dirs: ['right', 'up', 'right', 'down', 'down', 'right', 'down', 'left', 'down'] },
   {
@@ -106,7 +106,7 @@ const THREE: { id: number; dirs: Dir[] }[] = [
       'down',
     ],
   },
-  { id: 15, dirs: ['right', 'right', 'down', 'left', 'right', 'up', 'left', 'up', 'down'] },
+  { id: 15, dirs: ['up', 'up', 'right', 'down', 'up', 'left', 'down', 'left', 'right'] },
 ];
 
 describe('fifteen levels: 1/2/3 star routes and distinct 3-star', () => {
