@@ -64,5 +64,6 @@ HUD 状态行有 `plugin: true/false`。`false` = 仍在默认 `CAPBridgeViewCon
 | 设计分辨率 | `design.ts` + `style.css` |
 | 震动原生 | `plugins/native-haptics/*.swift` + bootstrap |
 | 启动 HUD | `index.html` + `main.ts` |
+| 局内画面 / 设 | [VISUAL.md](./VISUAL.md) · `iceGame.ts` · `style.css` |
 | 音效 | [AUDIO.md](./AUDIO.md) · `src/audio/*` · `plugins/native-audio/` |
 | 震动接线 | [HAPTICS.md](./HAPTICS.md) |

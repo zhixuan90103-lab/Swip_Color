@@ -22,6 +22,23 @@ export type BoardTune = {
   cellOpacity: number;
   shadowW: number;
   shadowH: number;
+  boxSize: number;
+  youSize: number;
+  wallSize: number;
+  boxX: number;
+  boxY: number;
+  youX: number;
+  youY: number;
+  wallX: number;
+  wallY: number;
+  starSize: number;
+  starX: number;
+  starY: number;
+  glowSize: number;
+  glowX: number;
+  glowY: number;
+  glowOpacity: number;
+  doorSize: number;
 };
 
 export const TUNE_DEFAULT: BoardTune = {
@@ -30,9 +47,26 @@ export const TUNE_DEFAULT: BoardTune = {
   cell: 60,
   gap: 2,
   inset: -20,
-  cellOpacity: 60,
+  cellOpacity: 25,
   shadowW: 356,
   shadowH: 358,
+  boxSize: 66,
+  youSize: 66,
+  wallSize: 66,
+  boxX: 1,
+  boxY: -2,
+  youX: 0,
+  youY: -10,
+  wallX: 0,
+  wallY: 0,
+  starSize: 70,
+  starX: 0,
+  starY: -15,
+  glowSize: 60,
+  glowX: 0,
+  glowY: 5,
+  glowOpacity: 60,
+  doorSize: 70,
 };
 
 export const TUNE_RANGE = {
@@ -44,6 +78,23 @@ export const TUNE_RANGE = {
   cellOpacity: { min: 0, max: 100 },
   shadowW: { min: 160, max: 520 },
   shadowH: { min: 160, max: 560 },
+  boxSize: { min: 20, max: 120 },
+  youSize: { min: 20, max: 120 },
+  wallSize: { min: 20, max: 120 },
+  boxX: { min: -24, max: 24 },
+  boxY: { min: -24, max: 24 },
+  youX: { min: -24, max: 24 },
+  youY: { min: -24, max: 24 },
+  wallX: { min: -24, max: 24 },
+  wallY: { min: -24, max: 24 },
+  starSize: { min: 20, max: 120 },
+  starX: { min: -24, max: 24 },
+  starY: { min: -24, max: 24 },
+  glowSize: { min: 8, max: 80 },
+  glowX: { min: -24, max: 24 },
+  glowY: { min: -24, max: 24 },
+  glowOpacity: { min: 0, max: 100 },
+  doorSize: { min: 20, max: 120 },
 } as const;
 
 export type BoardLayout = {

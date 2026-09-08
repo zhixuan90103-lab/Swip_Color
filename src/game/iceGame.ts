@@ -14,7 +14,7 @@ import { attachSwipeInput } from './swipeInput';
 import { cellKey, ratingStars, type Cell, type Dir, type IceState } from './iceTypes';
 import { LEVELS } from './levels';
 
-const TUNE_KEY = 'ice-board-tune-v4';
+const TUNE_KEY = 'ice-board-tune-v10';
 const STEP_MS = FEEL2_DEFAULT.slideMs;
 
 function loadTune(): BoardTune {
@@ -36,6 +36,28 @@ function loadTune(): BoardTune {
       ),
       shadowW: clampTune(parsed.shadowW, TUNE_RANGE.shadowW.min, TUNE_RANGE.shadowW.max, TUNE_DEFAULT.shadowW),
       shadowH: clampTune(parsed.shadowH, TUNE_RANGE.shadowH.min, TUNE_RANGE.shadowH.max, TUNE_DEFAULT.shadowH),
+      boxSize: clampTune(parsed.boxSize, TUNE_RANGE.boxSize.min, TUNE_RANGE.boxSize.max, TUNE_DEFAULT.boxSize),
+      youSize: clampTune(parsed.youSize, TUNE_RANGE.youSize.min, TUNE_RANGE.youSize.max, TUNE_DEFAULT.youSize),
+      wallSize: clampTune(parsed.wallSize, TUNE_RANGE.wallSize.min, TUNE_RANGE.wallSize.max, TUNE_DEFAULT.wallSize),
+      boxX: clampTune(parsed.boxX, TUNE_RANGE.boxX.min, TUNE_RANGE.boxX.max, TUNE_DEFAULT.boxX),
+      boxY: clampTune(parsed.boxY, TUNE_RANGE.boxY.min, TUNE_RANGE.boxY.max, TUNE_DEFAULT.boxY),
+      youX: clampTune(parsed.youX, TUNE_RANGE.youX.min, TUNE_RANGE.youX.max, TUNE_DEFAULT.youX),
+      youY: clampTune(parsed.youY, TUNE_RANGE.youY.min, TUNE_RANGE.youY.max, TUNE_DEFAULT.youY),
+      wallX: clampTune(parsed.wallX, TUNE_RANGE.wallX.min, TUNE_RANGE.wallX.max, TUNE_DEFAULT.wallX),
+      wallY: clampTune(parsed.wallY, TUNE_RANGE.wallY.min, TUNE_RANGE.wallY.max, TUNE_DEFAULT.wallY),
+      starSize: clampTune(parsed.starSize, TUNE_RANGE.starSize.min, TUNE_RANGE.starSize.max, TUNE_DEFAULT.starSize),
+      starX: clampTune(parsed.starX, TUNE_RANGE.starX.min, TUNE_RANGE.starX.max, TUNE_DEFAULT.starX),
+      starY: clampTune(parsed.starY, TUNE_RANGE.starY.min, TUNE_RANGE.starY.max, TUNE_DEFAULT.starY),
+      glowSize: clampTune(parsed.glowSize, TUNE_RANGE.glowSize.min, TUNE_RANGE.glowSize.max, TUNE_DEFAULT.glowSize),
+      glowX: clampTune(parsed.glowX, TUNE_RANGE.glowX.min, TUNE_RANGE.glowX.max, TUNE_DEFAULT.glowX),
+      glowY: clampTune(parsed.glowY, TUNE_RANGE.glowY.min, TUNE_RANGE.glowY.max, TUNE_DEFAULT.glowY),
+      glowOpacity: clampTune(
+        parsed.glowOpacity,
+        TUNE_RANGE.glowOpacity.min,
+        TUNE_RANGE.glowOpacity.max,
+        TUNE_DEFAULT.glowOpacity,
+      ),
+      doorSize: clampTune(parsed.doorSize, TUNE_RANGE.doorSize.min, TUNE_RANGE.doorSize.max, TUNE_DEFAULT.doorSize),
     };
   } catch {
     return { ...TUNE_DEFAULT };
@@ -76,6 +98,7 @@ export function startIceGame(opts: {
       </div>
       <button type="button" class="ice-restart" id="ice-restart">重开</button>
       <button type="button" class="ice-haptic" id="haptic-tap">震</button>
+      <button type="button" class="ice-settings" id="ice-settings">设</button>
     </header>
     <div class="ice-board-wrap">
       <div class="ice-board-shell">
@@ -95,8 +118,11 @@ export function startIceGame(opts: {
         </div>
       </div>
     </div>
-    <aside class="tune-panel" id="tune-panel">
-      <p class="tune-title">棋盘调参</p>
+    <aside class="tune-panel hidden" id="tune-panel">
+      <div class="tune-head">
+        <p class="tune-title">棋盘调参</p>
+        <button type="button" class="tune-close" id="tune-close">关闭</button>
+      </div>
       <label class="tune-row">
         <span>宽</span>
         <input id="tune-boardW" type="range" min="${TUNE_RANGE.boardW.min}" max="${TUNE_RANGE.boardW.max}" step="1" />
@@ -137,11 +163,96 @@ export function startIceGame(opts: {
         <input id="tune-shadowH" type="range" min="${TUNE_RANGE.shadowH.min}" max="${TUNE_RANGE.shadowH.max}" step="1" />
         <b id="tune-shadowH-v"></b>
       </label>
-      <p class="tune-hint">宽/高=托盘　格子=砖大小　透明=冰砖不透明度</p>
+      <label class="tune-row">
+        <span>箱子</span>
+        <input id="tune-boxSize" type="range" min="${TUNE_RANGE.boxSize.min}" max="${TUNE_RANGE.boxSize.max}" step="1" />
+        <b id="tune-boxSize-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>角色</span>
+        <input id="tune-youSize" type="range" min="${TUNE_RANGE.youSize.min}" max="${TUNE_RANGE.youSize.max}" step="1" />
+        <b id="tune-youSize-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>石头</span>
+        <input id="tune-wallSize" type="range" min="${TUNE_RANGE.wallSize.min}" max="${TUNE_RANGE.wallSize.max}" step="1" />
+        <b id="tune-wallSize-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>箱X</span>
+        <input id="tune-boxX" type="range" min="${TUNE_RANGE.boxX.min}" max="${TUNE_RANGE.boxX.max}" step="1" />
+        <b id="tune-boxX-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>箱Y</span>
+        <input id="tune-boxY" type="range" min="${TUNE_RANGE.boxY.min}" max="${TUNE_RANGE.boxY.max}" step="1" />
+        <b id="tune-boxY-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>角X</span>
+        <input id="tune-youX" type="range" min="${TUNE_RANGE.youX.min}" max="${TUNE_RANGE.youX.max}" step="1" />
+        <b id="tune-youX-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>角Y</span>
+        <input id="tune-youY" type="range" min="${TUNE_RANGE.youY.min}" max="${TUNE_RANGE.youY.max}" step="1" />
+        <b id="tune-youY-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>石X</span>
+        <input id="tune-wallX" type="range" min="${TUNE_RANGE.wallX.min}" max="${TUNE_RANGE.wallX.max}" step="1" />
+        <b id="tune-wallX-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>石Y</span>
+        <input id="tune-wallY" type="range" min="${TUNE_RANGE.wallY.min}" max="${TUNE_RANGE.wallY.max}" step="1" />
+        <b id="tune-wallY-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>星星</span>
+        <input id="tune-starSize" type="range" min="${TUNE_RANGE.starSize.min}" max="${TUNE_RANGE.starSize.max}" step="1" />
+        <b id="tune-starSize-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>星X</span>
+        <input id="tune-starX" type="range" min="${TUNE_RANGE.starX.min}" max="${TUNE_RANGE.starX.max}" step="1" />
+        <b id="tune-starX-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>星Y</span>
+        <input id="tune-starY" type="range" min="${TUNE_RANGE.starY.min}" max="${TUNE_RANGE.starY.max}" step="1" />
+        <b id="tune-starY-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>光大小</span>
+        <input id="tune-glowSize" type="range" min="${TUNE_RANGE.glowSize.min}" max="${TUNE_RANGE.glowSize.max}" step="1" />
+        <b id="tune-glowSize-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>光X</span>
+        <input id="tune-glowX" type="range" min="${TUNE_RANGE.glowX.min}" max="${TUNE_RANGE.glowX.max}" step="1" />
+        <b id="tune-glowX-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>光Y</span>
+        <input id="tune-glowY" type="range" min="${TUNE_RANGE.glowY.min}" max="${TUNE_RANGE.glowY.max}" step="1" />
+        <b id="tune-glowY-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>光透明</span>
+        <input id="tune-glowOpacity" type="range" min="${TUNE_RANGE.glowOpacity.min}" max="${TUNE_RANGE.glowOpacity.max}" step="1" />
+        <b id="tune-glowOpacity-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>终点</span>
+        <input id="tune-doorSize" type="range" min="${TUNE_RANGE.doorSize.min}" max="${TUNE_RANGE.doorSize.max}" step="1" />
+        <b id="tune-doorSize-v"></b>
+      </label>
+      <p class="tune-hint">X右正 Y下正，相对格子中心</p>
       <button type="button" class="tune-reset" id="tune-reset">恢复默认</button>
     </aside>
   `;
-  root.style.backgroundImage = `url(${import.meta.env.BASE_URL}ui/table-bg.jpg)`;
+  root.style.backgroundImage = `url(${import.meta.env.BASE_URL}ui/table-bg.png)`;
   opts.uiRoot.replaceChildren(root);
 
   const board = root.querySelector('#ice-board') as HTMLElement;
@@ -156,31 +267,38 @@ export function startIceGame(opts: {
   function paintStatic(s: IceState): void {
     laid = layoutBoard(tune, s.rows, s.cols);
     applyTuneCss();
-    const door = cellKey(s.door);
     const parts: string[] = [];
     for (const cell of s.open) {
-      const k = cellKey(cell);
       const shade = (cell.r + cell.c) % 2 === 0 ? 'is-ice-a' : 'is-ice-b';
-      const cls = k === door ? 'ice-cell is-door' : `ice-cell ${shade}`;
       const p = tokenPos(laid, cell);
-      parts.push(`<div class="${cls}" style="left:${p.x}px;top:${p.y}px"></div>`);
+      parts.push(
+        `<div class="ice-cell ${shade}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(cell.r, 0)}"></div>`,
+      );
     }
     for (const cell of s.walls) {
       const p = tokenPos(laid, cell);
       parts.push(
-        `<div class="ice-cell is-wall" style="left:${p.x}px;top:${p.y}px"></div>`,
+        `<div class="ice-cell is-wall" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(cell.r, 2)}"></div>`,
       );
     }
     for (const t of s.stars) {
       const p = tokenPos(laid, t);
+      const key = cellKey(t);
       parts.push(
-        `<div class="ice-star" data-star="${cellKey(t)}" style="left:${p.x}px;top:${p.y}px"></div>`,
+        `<div class="ice-star-glow" data-star-glow="${key}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(t.r, 2)}"></div>`,
+        `<div class="ice-star" data-star="${key}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(t.r, 3)}"></div>`,
+      );
+    }
+    {
+      const p = tokenPos(laid, s.door);
+      parts.push(
+        `<div class="ice-door" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(s.door.r, 3)}"></div>`,
       );
     }
     s.boxes.forEach((_, i) => {
       parts.push(`<div class="ice-box" id="ice-box-${i}"></div>`);
     });
-    parts.push(`<div class="ice-you" id="ice-you"></div>`);
+    parts.push(`<div class="ice-you" id="ice-you"><span class="you-rig"><span class="you-body"></span><span class="you-eye"></span><span class="you-pupil"></span></span></div>`);
     board.style.width = `${laid.gridW}px`;
     board.style.height = `${laid.gridH}px`;
     board.style.left = `${laid.originX}px`;
@@ -207,10 +325,15 @@ export function startIceGame(opts: {
     shell.style.transform = `scale(${scale})`;
   }
 
+  function stackZ(row: number, layer: number): number {
+    return (row + 1) * 10 + layer;
+  }
+
   function placeAt(el: HTMLElement, c: Cell): void {
     const p = tokenPos(laid, c);
     el.style.left = `${p.x}px`;
     el.style.top = `${p.y}px`;
+    el.style.zIndex = String(stackZ(c.r, 4));
   }
 
   function placeTokens(s: IceState): void {
@@ -224,7 +347,9 @@ export function startIceGame(opts: {
   }
 
   function hideStar(at: Cell): void {
-    board.querySelector(`[data-star="${cellKey(at)}"]`)?.classList.add('gone');
+    const key = cellKey(at);
+    board.querySelector(`[data-star="${key}"]`)?.classList.add('gone');
+    board.querySelector(`[data-star-glow="${key}"]`)?.classList.add('gone');
   }
 
   function applyTuneCss(): void {
@@ -238,10 +363,53 @@ export function startIceGame(opts: {
     const sh = tune.shadowH * (laid.boardH / tune.boardH);
     root.style.setProperty('--ice-shadow-w', `${sw}px`);
     root.style.setProperty('--ice-shadow-h', `${sh}px`);
+    root.style.setProperty('--ice-box', `${tune.boxSize}px`);
+    root.style.setProperty('--ice-you', `${tune.youSize}px`);
+    root.style.setProperty('--ice-wall', `${tune.wallSize}px`);
+    root.style.setProperty('--ice-box-x', `${tune.boxX}px`);
+    root.style.setProperty('--ice-box-y', `${tune.boxY}px`);
+    root.style.setProperty('--ice-you-x', `${tune.youX}px`);
+    root.style.setProperty('--ice-you-y', `${tune.youY}px`);
+    root.style.setProperty('--ice-wall-x', `${tune.wallX}px`);
+    root.style.setProperty('--ice-wall-y', `${tune.wallY}px`);
+    root.style.setProperty('--ice-star', `${tune.starSize}px`);
+    root.style.setProperty('--ice-star-x', `${tune.starX}px`);
+    root.style.setProperty('--ice-star-y', `${tune.starY}px`);
+    root.style.setProperty('--ice-glow', `${tune.glowSize}px`);
+    root.style.setProperty('--ice-glow-x', `${tune.glowX}px`);
+    root.style.setProperty('--ice-glow-y', `${tune.glowY}px`);
+    root.style.setProperty('--ice-glow-opacity', String(tune.glowOpacity / 100));
+    root.style.setProperty('--ice-door', `${tune.doorSize}px`);
   }
 
   function syncTuneUi(): void {
-    (['boardW', 'boardH', 'cell', 'gap', 'inset', 'cellOpacity', 'shadowW', 'shadowH'] as const).forEach((key) => {
+    ([
+      'boardW',
+      'boardH',
+      'cell',
+      'gap',
+      'inset',
+      'cellOpacity',
+      'shadowW',
+      'shadowH',
+      'boxSize',
+      'youSize',
+      'wallSize',
+      'boxX',
+      'boxY',
+      'youX',
+      'youY',
+      'wallX',
+      'wallY',
+      'starSize',
+      'starX',
+      'starY',
+      'glowSize',
+      'glowX',
+      'glowY',
+      'glowOpacity',
+      'doorSize',
+    ] as const).forEach((key) => {
       const input = root.querySelector(`#tune-${key}`) as HTMLInputElement;
       input.value = String(tune[key]);
       root.querySelector(`#tune-${key}-v`)!.textContent = String(tune[key]);
@@ -262,7 +430,28 @@ export function startIceGame(opts: {
   const onTuneInput = (key: keyof BoardTune) => (e: Event) => {
     const el = e.target as HTMLInputElement;
     tune[key] = Number(el.value);
-    if (key === 'cellOpacity' || key === 'shadowW' || key === 'shadowH') {
+    if (
+      key === 'cellOpacity' ||
+      key === 'shadowW' ||
+      key === 'shadowH' ||
+      key === 'boxSize' ||
+      key === 'youSize' ||
+      key === 'wallSize' ||
+      key === 'boxX' ||
+      key === 'boxY' ||
+      key === 'youX' ||
+      key === 'youY' ||
+      key === 'wallX' ||
+      key === 'wallY' ||
+      key === 'starSize' ||
+      key === 'starX' ||
+      key === 'starY' ||
+      key === 'glowSize' ||
+      key === 'glowX' ||
+      key === 'glowY' ||
+      key === 'glowOpacity' ||
+      key === 'doorSize'
+    ) {
       applyTuneCss();
       syncTuneUi();
       localStorage.setItem(TUNE_KEY, JSON.stringify(tune));
@@ -278,6 +467,23 @@ export function startIceGame(opts: {
   root.querySelector('#tune-cellOpacity')!.addEventListener('input', onTuneInput('cellOpacity'));
   root.querySelector('#tune-shadowW')!.addEventListener('input', onTuneInput('shadowW'));
   root.querySelector('#tune-shadowH')!.addEventListener('input', onTuneInput('shadowH'));
+  root.querySelector('#tune-boxSize')!.addEventListener('input', onTuneInput('boxSize'));
+  root.querySelector('#tune-youSize')!.addEventListener('input', onTuneInput('youSize'));
+  root.querySelector('#tune-wallSize')!.addEventListener('input', onTuneInput('wallSize'));
+  root.querySelector('#tune-boxX')!.addEventListener('input', onTuneInput('boxX'));
+  root.querySelector('#tune-boxY')!.addEventListener('input', onTuneInput('boxY'));
+  root.querySelector('#tune-youX')!.addEventListener('input', onTuneInput('youX'));
+  root.querySelector('#tune-youY')!.addEventListener('input', onTuneInput('youY'));
+  root.querySelector('#tune-wallX')!.addEventListener('input', onTuneInput('wallX'));
+  root.querySelector('#tune-wallY')!.addEventListener('input', onTuneInput('wallY'));
+  root.querySelector('#tune-starSize')!.addEventListener('input', onTuneInput('starSize'));
+  root.querySelector('#tune-starX')!.addEventListener('input', onTuneInput('starX'));
+  root.querySelector('#tune-starY')!.addEventListener('input', onTuneInput('starY'));
+  root.querySelector('#tune-glowSize')!.addEventListener('input', onTuneInput('glowSize'));
+  root.querySelector('#tune-glowX')!.addEventListener('input', onTuneInput('glowX'));
+  root.querySelector('#tune-glowY')!.addEventListener('input', onTuneInput('glowY'));
+  root.querySelector('#tune-glowOpacity')!.addEventListener('input', onTuneInput('glowOpacity'));
+  root.querySelector('#tune-doorSize')!.addEventListener('input', onTuneInput('doorSize'));
   root.querySelector('#tune-reset')!.addEventListener('click', (e) => {
     e.stopPropagation();
     Object.assign(tune, TUNE_DEFAULT);
@@ -288,6 +494,12 @@ export function startIceGame(opts: {
   tunePanel.addEventListener('pointerdown', blockSwipe);
   tunePanel.addEventListener('pointermove', blockSwipe);
   tunePanel.addEventListener('pointerup', blockSwipe);
+  const toggleTune = (e: Event) => {
+    e.stopPropagation();
+    tunePanel.classList.toggle('hidden');
+  };
+  root.querySelector('#ice-settings')!.addEventListener('click', toggleTune);
+  root.querySelector('#tune-close')!.addEventListener('click', toggleTune);
 
   const wrap = root.querySelector('.ice-board-wrap') as HTMLElement;
   const ro = new ResizeObserver(() => fitBoard());

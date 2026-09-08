@@ -1,6 +1,6 @@
 # Engineering — portrait-webgpu-base
 
-配套：[AGENTS.md](../AGENTS.md) · [README.md](./README.md) · [ICE-PUZZLE.md](./ICE-PUZZLE.md) · [ENTRYPOINTS.md](./ENTRYPOINTS.md) · [MERGE.md](./MERGE.md) · [AUDIO.md](./AUDIO.md) · [HAPTICS.md](./HAPTICS.md)
+配套：[AGENTS.md](../AGENTS.md) · [README.md](./README.md) · [ICE-PUZZLE.md](./ICE-PUZZLE.md) · [VISUAL.md](./VISUAL.md) · [ENTRYPOINTS.md](./ENTRYPOINTS.md) · [MERGE.md](./MERGE.md) · [AUDIO.md](./AUDIO.md) · [HAPTICS.md](./HAPTICS.md)
 
 ## 1. 定位
 
@@ -16,9 +16,11 @@ portrait-webgpu-base/
 ├── index.html
 ├── vite.config.ts          # base: './' · port 5210
 ├── capacitor.config.ts     # contentInset never · scrollEnabled false
+├── public/ui/              # table-bg.png（桌面背景）
 ├── src/
 │   ├── main.ts             # 启动 + startIceGame
-│   ├── game/               # 冰面模拟 / 手感2 / 十五关
+│   ├── game/               # 冰面模拟 / 手感2 / 十五关 / 托盘布局
+│   ├── assets/ui/          # 运行时棋子与九宫托盘
 │   ├── create-renderer.ts
 │   ├── style.css
 │   ├── adapt/
