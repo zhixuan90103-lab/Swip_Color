@@ -1,20 +1,14 @@
 /**
  * Board layout — one knob, one job.
  *
- * The 9-slice tray size is independent of the ice grid.
+ * Tune boardW/H/gap/inset describes the **level-1 (5×5) template**.
+ * Other sizes keep that same slot, gap, and inset, and grow the tray so
+ * tiles don't shrink on 5×6 / 6×6 boards.
  *
- *   宽 boardW   outer width of the tray (border-box, includes rim)
- *   高 boardH   outer height of the tray
- *   框距 inset  padding from the inner well to the slot grid (may be negative)
+ *   宽/高     level-1 tray outer size
+ *   框距 inset  padding from inner well to the slot grid (may be negative)
  *   缝隙 gap    space between slots
- *   格子 cell   sprite size of ice / pieces, centered in each slot
- *
- * Square slots fit the padded well:
- *   wellW/H  = boardW/H - 2 * rim
- *   padded   = well - 2 * inset
- *   slot     = min of the row/col fit
- * The slot grid is centered in the padded well.
- * Changing `cell` must not change board, slot, or origin.
+ *   格子 cell   sprite size, centered in each slot (does not change slot)
  */
 
 export const BOARD_RIM = 44;
@@ -67,27 +61,37 @@ export type BoardLayout = {
   spritePad: number;
 };
 
+const TEMPLATE_ROWS = 5;
+const TEMPLATE_COLS = 5;
+
 export function layoutBoard(
   tune: BoardTune,
   rows: number,
   cols: number,
 ): BoardLayout {
   const rim = BOARD_RIM;
-  const wellW = tune.boardW - rim * 2;
-  const wellH = tune.boardH - rim * 2;
-  const paddedW = wellW - tune.inset * 2;
-  const paddedH = wellH - tune.inset * 2;
-  const slot = slotSize(paddedW, paddedH, tune.gap, rows, cols);
-  const gridW = cols * slot + Math.max(0, cols - 1) * tune.gap;
-  const gridH = rows * slot + Math.max(0, rows - 1) * tune.gap;
-  const originX = tune.inset + (paddedW - gridW) / 2;
-  const originY = tune.inset + (paddedH - gridH) / 2;
+  const gap = tune.gap;
+  const inset = tune.inset;
+  const chrome = 2 * (rim + inset);
+  const slot = templateSlot(tune);
+  const refGridW = TEMPLATE_COLS * slot + (TEMPLATE_COLS - 1) * gap;
+  const refGridH = TEMPLATE_ROWS * slot + (TEMPLATE_ROWS - 1) * gap;
+  const extraW = tune.boardW - (refGridW + chrome);
+  const extraH = tune.boardH - (refGridH + chrome);
+  const gridW = cols * slot + Math.max(0, cols - 1) * gap;
+  const gridH = rows * slot + Math.max(0, rows - 1) * gap;
+  const boardW = gridW + chrome + extraW;
+  const boardH = gridH + chrome + extraH;
+  const paddedW = boardW - chrome;
+  const paddedH = boardH - chrome;
+  const originX = inset + (paddedW - gridW) / 2;
+  const originY = inset + (paddedH - gridH) / 2;
   return {
-    boardW: tune.boardW,
-    boardH: tune.boardH,
+    boardW,
+    boardH,
     rim,
-    inset: tune.inset,
-    gap: tune.gap,
+    inset,
+    gap,
     cell: tune.cell,
     slot,
     gridW,
@@ -96,6 +100,14 @@ export function layoutBoard(
     originY,
     spritePad: (slot - tune.cell) / 2,
   };
+}
+
+function templateSlot(tune: BoardTune): number {
+  const wellW = tune.boardW - BOARD_RIM * 2;
+  const wellH = tune.boardH - BOARD_RIM * 2;
+  const paddedW = wellW - tune.inset * 2;
+  const paddedH = wellH - tune.inset * 2;
+  return slotSize(paddedW, paddedH, tune.gap, TEMPLATE_ROWS, TEMPLATE_COLS);
 }
 
 /** Slot center. Sprites sit on this point and scale with translate(-50%, -50%). */

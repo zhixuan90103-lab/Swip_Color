@@ -203,7 +203,7 @@ export function startIceGame(opts: {
     if (!shell || !wrap) return;
     const maxW = Math.max(wrap.clientWidth, 1);
     const maxH = Math.max(wrap.clientHeight, 1);
-    const scale = Math.min(1, maxW / tune.boardW, maxH / tune.boardH);
+    const scale = Math.min(1, maxW / laid.boardW, maxH / laid.boardH);
     shell.style.transform = `scale(${scale})`;
   }
 
@@ -228,14 +228,16 @@ export function startIceGame(opts: {
   }
 
   function applyTuneCss(): void {
-    root.style.setProperty('--ice-board-w', `${tune.boardW}px`);
-    root.style.setProperty('--ice-board-h', `${tune.boardH}px`);
+    root.style.setProperty('--ice-board-w', `${laid.boardW}px`);
+    root.style.setProperty('--ice-board-h', `${laid.boardH}px`);
     root.style.setProperty('--ice-cell', `${tune.cell}px`);
     root.style.setProperty('--ice-gap', `${tune.gap}px`);
     root.style.setProperty('--ice-inset', `${tune.inset}px`);
     root.style.setProperty('--ice-tile-opacity', String(tune.cellOpacity / 100));
-    root.style.setProperty('--ice-shadow-w', `${tune.shadowW}px`);
-    root.style.setProperty('--ice-shadow-h', `${tune.shadowH}px`);
+    const sw = tune.shadowW * (laid.boardW / tune.boardW);
+    const sh = tune.shadowH * (laid.boardH / tune.boardH);
+    root.style.setProperty('--ice-shadow-w', `${sw}px`);
+    root.style.setProperty('--ice-shadow-h', `${sh}px`);
   }
 
   function syncTuneUi(): void {

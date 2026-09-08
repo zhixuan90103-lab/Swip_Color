@@ -14,29 +14,25 @@ test('tray size is independent of cell', () => {
   assert.notEqual(a.cell, b.cell);
 });
 
-test('board size does not change cell', () => {
-  const a = layoutBoard(TUNE_DEFAULT, 5, 6);
-  const b = layoutBoard({ ...TUNE_DEFAULT, boardW: 500, boardH: 500 }, 5, 6);
-  assert.equal(a.cell, b.cell);
-  assert.equal(a.boardW, TUNE_DEFAULT.boardW);
-  assert.equal(b.boardW, 500);
-  assert.ok(b.slot > a.slot);
-});
-
-test('width and height are independent', () => {
+test('larger grids keep the level-1 slot and grow the tray', () => {
   const a = layoutBoard(TUNE_DEFAULT, 5, 5);
-  const wide = layoutBoard({ ...TUNE_DEFAULT, boardW: 500 }, 5, 5);
-  const tall = layoutBoard({ ...TUNE_DEFAULT, boardH: 500 }, 5, 5);
-  assert.equal(wide.boardH, a.boardH);
-  assert.equal(tall.boardW, a.boardW);
-  assert.ok(wide.originX > a.originX);
-  assert.ok(tall.originY > a.originY);
+  const b = layoutBoard(TUNE_DEFAULT, 6, 6);
+  assert.equal(a.slot, b.slot);
+  assert.equal(a.cell, b.cell);
+  assert.ok(b.boardW > a.boardW);
+  assert.ok(b.boardH > a.boardH);
 });
 
-test('grid is centered in a rectangular well', () => {
+test('5x5 uses the template board size', () => {
   const L = layoutBoard(TUNE_DEFAULT, 5, 5);
-  const wellW = TUNE_DEFAULT.boardW - BOARD_RIM * 2;
-  const wellH = TUNE_DEFAULT.boardH - BOARD_RIM * 2;
+  assert.equal(L.boardW, TUNE_DEFAULT.boardW);
+  assert.equal(L.boardH, TUNE_DEFAULT.boardH);
+});
+
+test('grid is centered in the well', () => {
+  const L = layoutBoard(TUNE_DEFAULT, 6, 5);
+  const wellW = L.boardW - BOARD_RIM * 2;
+  const wellH = L.boardH - BOARD_RIM * 2;
   assert.ok(Math.abs(L.originX * 2 + L.gridW - wellW) < 0.001);
   assert.ok(Math.abs(L.originY * 2 + L.gridH - wellH) < 0.001);
 });
