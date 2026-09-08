@@ -28,7 +28,7 @@ async function boot(): Promise<void> {
 
   const renderer = await createRenderer({ container: stage });
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xd9ecf7);
+  scene.background = new THREE.Color(0xf3eadc);
   const camera = new THREE.OrthographicCamera(
     0,
     DESIGN_WIDTH,
