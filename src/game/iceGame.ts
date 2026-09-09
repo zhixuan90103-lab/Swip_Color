@@ -966,6 +966,9 @@ export function startIceGame(opts: {
         starFxWait.push(collectStarFx(picked[pi]!, state.collected + pi));
         pi += 1;
       }
+      if (here.r === state.door.r && here.c === state.door.c) {
+        starFxWait.push(collectStarFx(state.door, 2));
+      }
       await sleep(stepMs);
       if (disposed) {
         youMotion.abort();
@@ -993,7 +996,6 @@ export function startIceGame(opts: {
     placeTokens(state);
 
     if (state.won) {
-      starFxWait.push(collectStarFx(state.door, 2));
       await Promise.all(starFxWait);
       starFxWait = [];
       if (disposed) return;
