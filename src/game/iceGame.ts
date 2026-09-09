@@ -43,8 +43,10 @@ const YOU_SLIDE_LEAN = 14;
 const YOU_SLIDE_STRETCH = 0.22;
 const YOU_SLIDE_EYE = 0.16;
 const YOU_HIT_OVERLAP = 18;
-const YOU_HIT_IN_MS = 55;
-const YOU_HIT_BACK_MS = 250;
+const YOU_HIT_IN_DIST = 26;
+const YOU_HIT_RECOIL = 2.6;
+const YOU_HIT_IN_MS = 70;
+const YOU_HIT_BACK_MS = 360;
 const YOU_HIT_SQUASH = 0.34;
 const YOU_HIT_STRETCH = 0.28;
 const YOU_HIT_LEAN = 22;
@@ -646,7 +648,7 @@ export function startIceGame(opts: {
           bounce = easeOutCubic(elapsed / YOU_HIT_IN_MS);
         } else if (elapsed < YOU_HIT_IN_MS + YOU_HIT_BACK_MS) {
           const u = (elapsed - YOU_HIT_IN_MS) / YOU_HIT_BACK_MS;
-          bounce = Math.exp(-3.8 * u) * Math.cos(u * Math.PI * 2.05);
+          bounce = Math.exp(-3.1 * u) * Math.cos(u * Math.PI * 2.15);
         } else {
           youHitOn = false;
           youHitDir = null;
@@ -661,16 +663,13 @@ export function startIceGame(opts: {
           youSyVel = 0;
           bounce = 0;
         }
-        hitX = d.x * YOU_HIT_OVERLAP * bounce;
-        hitY = d.y * YOU_HIT_OVERLAP * bounce;
+        const dist = bounce < 0 ? YOU_HIT_OVERLAP * YOU_HIT_RECOIL * bounce : YOU_HIT_IN_DIST * bounce;
+        const uBack = Math.max(0, (elapsed - YOU_HIT_IN_MS) / YOU_HIT_BACK_MS);
+        hitX = d.x * dist;
+        hitY = d.y * dist;
         const into = Math.max(0, bounce);
         const away = Math.max(0, -bounce);
-        const jig = youHitOn
-          ? Math.exp(-3.6 * Math.max(0, (elapsed - YOU_HIT_IN_MS) / YOU_HIT_BACK_MS)) *
-            0.12 *
-            Math.sin(Math.max(0, elapsed - YOU_HIT_IN_MS) * 0.048)
-          : 0;
-        const axis = 1 - YOU_HIT_SQUASH * into + YOU_HIT_STRETCH * away + jig;
+        const axis = 1 - YOU_HIT_SQUASH * into + YOU_HIT_STRETCH * away;
         if (d.x !== 0) {
           hitSx = axis;
           hitSy = 1 + 0.08 * into - 0.06 * away;
@@ -680,7 +679,11 @@ export function startIceGame(opts: {
         }
         const sign = d.x !== 0 ? (youHitFromRot < 0 || d.x < 0 ? -1 : 1) : 1;
         const leanAmp = d.x !== 0 ? YOU_HIT_LEAN * (d.x < 0 ? -1 : 1) : YOU_HIT_LEAN_UD * sign;
-        hitRot = leanAmp * bounce;
+        const sway =
+          elapsed > YOU_HIT_IN_MS && youHitOn
+            ? Math.exp(-2.4 * uBack) * Math.cos(uBack * Math.PI * 2)
+            : 0;
+        hitRot = leanAmp * bounce + 8 * sway;
         youSlideRot = hitRot;
       }
       const youEl = board.querySelector('#ice-you') as HTMLElement | null;
@@ -690,6 +693,7 @@ export function startIceGame(opts: {
       const sy = baseSy * hitSy;
       const sx = (youHitOn ? 1 / baseSy : 1 / (youSy * (1 + youSlideStr))) * hitSx;
       const rot = youLean + (youHitOn ? hitRot : youSlideRot);
+      youRig.style.transformOrigin = '50% 100%';
       youRig.style.transform = `rotate(${rot.toFixed(2)}deg) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
       if (youEye) {
         let lid = 1;
