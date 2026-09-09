@@ -16,4 +16,4 @@
 | AUDIO.md | 音效接入/热路径（底座；事件名仍是旧合成遗留） |
 | ENTRYPOINTS.md | 入口链 |
 
-**规范优先级：** 玩法以 `ICE-PUZZLE.md` 为准；画面/贴图/调参以 `VISUAL.md` 为准；角色运动以 `YOU-MOTION.md` 为准；关卡出题检索以 `LEVEL-RESEARCH.md` 为准；出手默认 `FEEL2_DEFAULT`；音效管道以 `AUDIO.md` 为准；震动插件以 `HAPTICS.md` 为准。代码与文档冲突时改其中一侧，不要并列两套默认。
+**规范优先级：** 玩法 → `ICE-PUZZLE.md`；画面/贴图/调参 → `VISUAL.md`；运动/juice → `YOU-MOTION.md`；出题检索 → `LEVEL-RESEARCH.md`；出手 → `FEEL2_DEFAULT`；音效 → `AUDIO.md`；震动 → `HAPTICS.md`。代码与文档冲突时改其中一侧，不要并列两套默认。表现数字只写在 YOU-MOTION / 对应 ts 导出常量。

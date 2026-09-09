@@ -1,6 +1,6 @@
 # 画面与资源
 
-日期：**2026-09-08**。本文是**表现层真源**（贴图、托盘布局、调参）。玩法规则仍以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) 为准。
+日期：**2026-09-09**。本文是**表现层真源**（贴图、托盘布局、调参、层级）。玩法规则仍以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) 为准。运动 / juice 以 [YOU-MOTION.md](./YOU-MOTION.md) 为准。
 
 实现：`src/game/boardLayout.ts`（槽位/托盘）· `iceGame.ts`（DOM、调参）· juice 见 [YOU-MOTION.md](./YOU-MOTION.md) · `src/style.css`。
 
@@ -25,8 +25,8 @@
 | 墙/石头 | `src/assets/ui/wall.png` | `.is-wall` |
 | 箱 | `src/assets/ui/crate.png` | `.ice-box` |
 | 星 | `src/assets/ui/star.png` | `.ice-star` |
-| 终点 | `src/assets/ui/door.png` | `.ice-door`（叠在冰格上，不替换冰砖） |
-| 终点星 | 同 `star.png` | 门格再叠一颗带投影/泛光的星（装饰，不计入收集） |
+| 终点垫 | `src/assets/ui/door.png` | `.ice-door`（红色齿边垫，叠在冰格上，`contain`） |
+| 终点星 | 同 `star.png` | 门格装饰星：投影 + 泛光 + 待机浮；进门飞 HUD 第三槽，不计入收集 |
 | 角色整图（备份） | `src/assets/ui/you.png` | 局内**不用** |
 | 角色身体 | `src/assets/ui/you/body.png` | `.you-body` |
 | 眼白 | `src/assets/ui/you/eye.png` | `.you-eye` |
@@ -80,9 +80,11 @@ localStorage 键：`ice-board-tune-v10`。改默认时升版本，避免旧缓�
 
 ---
 
-## 5. 调参 UI
+## 5. HUD
 
-HUD **设** 打开/关闭面板（默认关上）。面板 `#tune-panel`，`pointerdown` 截住以免走棋。
+局内 `#ice-stars` **三槽** `.hud-star[data-i=0|1|2]`。槽 0 / 1 = 两颗收集星飞入；槽 2 = 进门装饰星飞入。结算 overlay 等飞星结束再出，见 YOU-MOTION §7。
+
+**设** 打开/关闭 `#tune-panel`（默认关）。`pointerdown` 截住以免走棋。
 
 四角压暗：`.ice-app::after` 横竖线性叠层（边淡、角最深），不做屏幕圆角；只压背景，棋盘/HUD `z-index: 1`。
 
@@ -93,8 +95,8 @@ HUD **设** 打开/关闭面板（默认关上）。面板 `#tune-panel`，`poin
 | 文件 | 职责 |
 |------|------|
 | `boardLayout.ts` | 槽位、托盘、`TUNE_*` |
-| `boardLayout.test.ts` | 模板槽不变、大关放大托盘 |
-| `iceGame.ts` | 画面、调参、设 |
+| `iceGame.ts` | DOM、调参、走棋编排 |
+| `youMotion.ts` / `boxMotion.ts` / `cellAdd.ts` / `starPickup.ts` | juice，见 YOU-MOTION |
 | `src/style.css` | 贴图与 CSS 变量 |
 | `src/assets/ui/*` | 运行时棋子/托盘 |
 | `public/ui/table-bg.png` | 桌面背景 |
