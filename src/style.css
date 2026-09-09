@@ -537,19 +537,38 @@ button:active {
 .ice-cell.is-ice-a,
 .ice-cell.is-ice-b {
   border-radius: 0;
-  background-color: transparent;
+  background: none;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.ice-cell-tile,
+.ice-cell-add {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% 100%;
-  opacity: var(--ice-tile-opacity);
 }
 
-.ice-cell.is-ice-a {
+.ice-cell.is-ice-a .ice-cell-tile,
+.ice-cell.is-ice-a .ice-cell-add {
   background-image: url('./assets/ui/ice-a.png');
 }
 
-.ice-cell.is-ice-b {
+.ice-cell.is-ice-b .ice-cell-tile,
+.ice-cell.is-ice-b .ice-cell-add {
   background-image: url('./assets/ui/ice-b.png');
+}
+
+.ice-cell-tile {
+  opacity: var(--ice-tile-opacity);
+}
+
+.ice-cell-add {
+  opacity: 0;
+  mix-blend-mode: plus-lighter;
 }
 
 .ice-cell.is-wall {

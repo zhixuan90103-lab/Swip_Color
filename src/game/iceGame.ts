@@ -313,7 +313,8 @@ export function startIceGame(opts: {
       const shade = (cell.r + cell.c) % 2 === 0 ? 'is-ice-a' : 'is-ice-b';
       const p = tokenPos(laid, cell);
       parts.push(
-        `<div class="ice-cell ${shade}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(cell.r, 0)}"></div>`,
+        `<div class="ice-cell ${shade}" data-cell="${cell.r}-${cell.c}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(cell.r, 0)}">` +
+          `<span class="ice-cell-tile"></span><span class="ice-cell-add"></span></div>`,
       );
     }
     for (const cell of s.walls) {
@@ -347,6 +348,7 @@ export function startIceGame(opts: {
     board.style.left = `${laid.originX}px`;
     board.style.top = `${laid.originY}px`;
     board.innerHTML = parts.join('');
+    youCellKey = '';
     bindStarIdle();
     youMotion.bind(
       board.querySelector('#ice-you'),
@@ -386,9 +388,70 @@ export function startIceGame(opts: {
     el.style.zIndex = String(stackZ(c.r, 4));
   }
 
+  const CELL_ADD_OP = 0.4;
+  const CELL_ADD_FADE_MS = 450;
+  let youCellKey = '';
+
+  function cellAddEl(c: Cell): HTMLElement | null {
+    return board.querySelector(`[data-cell="${c.r}-${c.c}"] .ice-cell-add`);
+  }
+
+  function lightCellAdd(c: Cell, fade: boolean): void {
+    const add = cellAddEl(c);
+    if (!add) return;
+    add.style.transition = 'none';
+    add.style.opacity = String(CELL_ADD_OP);
+    void add.offsetWidth;
+    if (prefersReduceMotion()) {
+      add.style.opacity = fade ? '0' : String(CELL_ADD_OP);
+      return;
+    }
+    if (fade) {
+      add.style.transition = `opacity ${CELL_ADD_FADE_MS}ms ease-out`;
+      add.style.opacity = '0';
+    }
+  }
+
+  function setYouCell(c: Cell): void {
+    const key = `${c.r}-${c.c}`;
+    if (key === youCellKey) return;
+    if (youCellKey) {
+      const prev = youCellKey.split('-').map(Number);
+      lightCellAdd({ r: prev[0]!, c: prev[1]! }, true);
+    }
+    youCellKey = key;
+    lightCellAdd(c, false);
+  }
+
+  function syncYouCellFromSprite(): void {
+    const youEl = board.querySelector('#ice-you') as HTMLElement | null;
+    if (!youEl) return;
+    const x = parseFloat(getComputedStyle(youEl).left);
+    const y = parseFloat(getComputedStyle(youEl).top);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    let best: Cell | null = null;
+    let bestD = Infinity;
+    board.querySelectorAll('.ice-cell[data-cell]').forEach((el) => {
+      const id = el.getAttribute('data-cell');
+      if (!id) return;
+      const parts = id.split('-');
+      const r = Number(parts[0]);
+      const c = Number(parts[1]);
+      if (!Number.isFinite(r) || !Number.isFinite(c)) return;
+      const p = tokenPos(laid, { r, c });
+      const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+      if (d < bestD) {
+        bestD = d;
+        best = { r, c };
+      }
+    });
+    if (best) setYouCell(best);
+  }
+
   function placeTokens(s: IceState): void {
     const you = board.querySelector('#ice-you') as HTMLElement | null;
     if (you) placeAt(you, s.player);
+    setYouCell(s.player);
     s.boxes.forEach((b, i) => {
       const el = board.querySelector(`#ice-box-${i}`) as HTMLElement | null;
       if (!el) return;
@@ -431,6 +494,7 @@ export function startIceGame(opts: {
   function tickStarIdle(now: number): void {
     if (disposed) return;
     idleRaf = requestAnimationFrame(tickStarIdle);
+    syncYouCellFromSprite();
     if (prefersReduceMotion()) return;
     youMotion.tick(now);
     const cycle = now / 1000 / STAR_IDLE_PERIOD;
