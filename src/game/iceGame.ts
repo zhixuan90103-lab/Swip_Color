@@ -708,7 +708,6 @@ export function startIceGame(opts: {
     const id = starKey(at);
     const star = board.querySelector(`[data-star="${id}"]`) as HTMLElement | null;
     const glow = glowEl(at);
-    const glowScale0 = Number(glow?.dataset.scale) || 1;
     const glowBase = Math.max(0.25, tune.glowOpacity / 100);
     const hud = starsEl.querySelector(`.hud-star[data-i="${hudIndex}"]`) as HTMLElement | null;
     if (!star || prefersReduceMotion()) {
@@ -730,6 +729,7 @@ export function startIceGame(opts: {
     fly.style.top = '0';
     const flyAdd = fly.querySelector('.ice-star-fly-add') as HTMLElement;
     hideStar(at);
+    glow?.classList.add('is-fading');
 
     const endScale = Math.max(0.42, to.w / size);
     const t0 = performance.now();
@@ -785,6 +785,10 @@ export function startIceGame(opts: {
         const sy = 1 + 0.34 * Math.sin(Math.PI * t);
         const sx = 1 / sy;
         place(x, y, sx, sy, 0, 1, 0.3 * e);
+        if (glow) {
+          glow.style.opacity = (glowBase * (1 - e)).toFixed(3);
+          if (t >= 1) glow.classList.add('gone');
+        }
         headHoldX = x;
         headHoldY = from.y - STAR_RISE_Y;
         hoverX = x;
@@ -839,15 +843,6 @@ export function startIceGame(opts: {
       const sy = lerp(hudFromSy, syFly, blend) * shrink;
       const a = 1 - e;
       place(x, y, sx, sy, rot, a, lerp(0.3, 0, e));
-      if (glow) {
-        glow.classList.add('is-fading');
-        const gf = easeOutCubic(Math.min(1, u / 0.28));
-        const gs = lerp(glowScale0, glowScale0 * 0.72, gf);
-        glow.style.transform =
-          `translate(calc(-50% + var(--ice-glow-x)), calc(-50% + var(--ice-glow-y))) scale(${gs.toFixed(3)})`;
-        glow.style.opacity = (glowBase * (1 - gf)).toFixed(3);
-        if (gf >= 1) glow.classList.add('gone');
-      }
       if (u < 1) {
         requestAnimationFrame(tick);
         return;
