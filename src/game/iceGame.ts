@@ -26,6 +26,18 @@ const STAR_IDLE_PERIOD = 2.2;
 const STAR_IDLE_Y = 4.2;
 const STAR_IDLE_STRETCH = 0.038;
 const STAR_IDLE_RISE = 0.44;
+/** Locked idle breath rhythm: L stretch → center squat hold → R stretch → center squat hold.
+ *  Per half-cycle: 0–0.16 center hold, 0.16–0.50 ease-in-out to side, 0.50–0.54 side, 0.54–0.88 ease-in-out home, 0.88–1.0 hold.
+ *  Lean 0.5–1°, squash 0.09–0.15, stretch 0.20–0.30, period 1.55–1.95s. Amps lerp, do not snap. */
+const YOU_SWAY_PERIOD = 1.7;
+const YOU_LEAN_MIN = 0.5;
+const YOU_LEAN_MAX = 1;
+const YOU_SQUASH_MIN = 0.09;
+const YOU_SQUASH_MAX = 0.15;
+const YOU_STRETCH_MIN = 0.2;
+const YOU_STRETCH_MAX = 0.3;
+const YOU_PERIOD_MIN = 1.55;
+const YOU_PERIOD_MAX = 1.95;
 
 function loadTune(): BoardTune {
   try {
@@ -104,6 +116,44 @@ export function startIceGame(opts: {
     phase: number;
   };
   let idleStars: StarIdle[] = [];
+  let youRig: HTMLElement | null = null;
+  let youPhase = 0;
+  let youRate = 1 / YOU_SWAY_PERIOD;
+  let youLeanAmp = 0.75;
+  let youSquashAmp = 0.12;
+  let youStretchAmp = 0.25;
+  let youLeanAmpT = 0.75;
+  let youSquashAmpT = 0.12;
+  let youStretchAmpT = 0.25;
+  let youRateT = 1 / YOU_SWAY_PERIOD;
+  let youIdlePrev = 0;
+  let youLean = 0;
+  let youLeanVel = 0;
+  let youSy = 1;
+  let youSyVel = 0;
+
+  function mix(min: number, max: number): number {
+    return min + Math.random() * (max - min);
+  }
+
+  function rollYouIdle(): void {
+    youRateT = 1 / mix(YOU_PERIOD_MIN, YOU_PERIOD_MAX);
+    youLeanAmpT = mix(YOU_LEAN_MIN, YOU_LEAN_MAX);
+    youSquashAmpT = mix(YOU_SQUASH_MIN, YOU_SQUASH_MAX);
+    youStretchAmpT = mix(YOU_STRETCH_MIN, YOU_STRETCH_MAX);
+  }
+
+  function youLeanWave(u: number): number {
+    const half = u < 0.5 ? u * 2 : (u - 0.5) * 2;
+    const sign = u < 0.5 ? 1 : -1;
+    if (half < 0.16) return 0;
+    if (half < 0.5) return sign * easeInOutCubic((half - 0.16) / 0.34);
+    if (half < 0.54) return sign;
+    if (half < 0.88) return sign * (1 - easeInOutCubic((half - 0.54) / 0.34));
+    return 0;
+  }
+
+  rollYouIdle();
   const tune = loadTune();
   let laid: BoardLayout = layoutBoard(tune, state.rows, state.cols);
 
@@ -286,7 +336,7 @@ export function startIceGame(opts: {
 
   function paintStatic(s: IceState): void {
     fxGen += 1;
-    opts.stage.querySelectorAll('.ice-star-fly').forEach((el) => el.remove());
+    opts.stage.querySelectorAll('.ice-star-fly, .ice-star-burst').forEach((el) => el.remove());
     laid = layoutBoard(tune, s.rows, s.cols);
     applyTuneCss();
     const parts: string[] = [];
@@ -329,6 +379,7 @@ export function startIceGame(opts: {
     board.style.top = `${laid.originY}px`;
     board.innerHTML = parts.join('');
     bindStarIdle();
+    youRig = board.querySelector('.you-rig');
     placeTokens(s);
     const def = LEVELS[levelIndex]!;
     titleEl.textContent = `${def.id} ${def.title}`;
@@ -406,7 +457,37 @@ export function startIceGame(opts: {
   function tickStarIdle(now: number): void {
     if (disposed) return;
     idleRaf = requestAnimationFrame(tickStarIdle);
-    if (prefersReduceMotion() || idleStars.length === 0) return;
+    if (prefersReduceMotion()) return;
+    if (youRig) {
+      if (youIdlePrev === 0) youIdlePrev = now;
+      const dt = Math.min(0.05, (now - youIdlePrev) / 1000);
+      youIdlePrev = now;
+      youPhase += dt * youRate;
+      if (youPhase >= 1) {
+        youPhase -= 1;
+        rollYouIdle();
+      }
+      const fade = 1 - Math.exp(-dt * 2.4);
+      youRate += (youRateT - youRate) * fade;
+      youLeanAmp += (youLeanAmpT - youLeanAmp) * fade;
+      youSquashAmp += (youSquashAmpT - youSquashAmp) * fade;
+      youStretchAmp += (youStretchAmpT - youStretchAmp) * fade;
+      const wave = youLeanWave(youPhase);
+      const targetLean = wave * youLeanAmp;
+      youLeanVel += (targetLean - youLean) * 20 * dt;
+      youLeanVel *= Math.exp(-6.8 * dt);
+      youLean += youLeanVel * dt;
+      const side = Math.min(1, Math.abs(wave));
+      let targetSy = 1 - youSquashAmp * (1 - side) + youStretchAmp * side;
+      if (side < 0.12) {
+        targetSy += 0.018 * Math.sin(now * 0.011);
+      }
+      youSyVel += (targetSy - youSy) * 16 * dt;
+      youSyVel *= Math.exp(-5.8 * dt);
+      youSy += youSyVel * dt;
+      const sx = 1 / youSy;
+      youRig.style.transform = `rotate(${youLean.toFixed(2)}deg) scale(${sx.toFixed(4)}, ${youSy.toFixed(4)})`;
+    }
     const cycle = now / 1000 / STAR_IDLE_PERIOD;
     const glowBase = tune.glowOpacity / 100;
     for (const star of idleStars) {
@@ -454,7 +535,11 @@ export function startIceGame(opts: {
   }
 
   function easeOutCubic(t: number): number {
-    return 1 - (1 - t) ** 3;
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function easeInOutCubic(t: number): number {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   }
 
   function easeInQuart(t: number): number {
@@ -490,6 +575,37 @@ export function startIceGame(opts: {
     return { x: p.x, y: p.y - 100 };
   }
 
+  function burstHudStar(hud: HTMLElement): void {
+    if (prefersReduceMotion()) return;
+    const p = pointOnStage(hud);
+    const size = Math.max(p.w, p.h, 22);
+    const burst = document.createElement('div');
+    burst.className = 'ice-star-burst';
+    burst.style.width = `${size}px`;
+    burst.style.height = `${size}px`;
+    burst.style.backgroundImage = `url(${starArt})`;
+    opts.stage.appendChild(burst);
+    const gen = fxGen;
+    const t0 = performance.now();
+    const dur = 360;
+    const tick = (now: number) => {
+      if (disposed || gen !== fxGen) {
+        burst.remove();
+        return;
+      }
+      const t = Math.min(1, (now - t0) / dur);
+      const e = easeOutCubic(t);
+      const s = lerp(1, 2.4, e);
+      burst.style.transform = `translate(${p.x - size / 2}px, ${p.y - size / 2}px) scale(${s})`;
+      burst.style.opacity = (1 - e).toFixed(3);
+      if (t < 1) requestAnimationFrame(tick);
+      else burst.remove();
+    };
+    burst.style.transform = `translate(${p.x - size / 2}px, ${p.y - size / 2}px) scale(1)`;
+    burst.style.opacity = '1';
+    requestAnimationFrame(tick);
+  }
+
   function lightHudStar(index: number): void {
     const hud = starsEl.querySelector(`.hud-star[data-i="${index}"]`) as HTMLElement | null;
     if (!hud) return;
@@ -497,6 +613,7 @@ export function startIceGame(opts: {
     hud.classList.remove('is-pop');
     void hud.offsetWidth;
     hud.classList.add('is-pop');
+    burstHudStar(hud);
   }
 
   function collectStarFx(at: Cell, hudIndex: number): void {
