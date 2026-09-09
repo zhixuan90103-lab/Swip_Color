@@ -144,11 +144,11 @@ Chrome：Performance 掉帧%、Rendering stats、Paint flashing、Layers。
 |--------|------|------|------|
 | P0 量 | 桌面录待机 / 空滑 / 推箱 / 吃星：掉帧%、Layout 是否跟 left/top、Layers 数量 | Q7 | 待做 |
 | P0 量 | **iPhone 真机 60Hz** 同样四套；确认 rAF 间隔 ≈16.7ms。Safari **Develop → Inspect Apps**（WK 需 `isInspectable`） | Q1 Q7 第三轮 | 待做 |
-| P1 | **停空 WebGPU loop**（或只 render 一帧当背景）。评估关 antialias | Q6 Q9 | 可做，面小 |
-| P1 | **一条 rAF**：idle +（可选）3D；飞星 tick 并进同一 loop，不要第三条永转 | Q5 MDN 同帧多回调 | 可做 |
-| P2 | reduce-motion 或完全静止时 **cancel idle rAF** | Q5 | 可做 |
-| P2 | 滑格改为格点瞬切 left/top + **transform 位移**。先看 P0 Layout 占比；毁手感 2 则回滚 | Q2 Q8 | 先量 |
-| P3 | 拆常驻 will-change（`#stage`、glow、sprite、眼）。飞星窗口再挂 | Q3 | 可做 |
+| P1 | **停空 WebGPU loop**（或只 render 一帧当背景）。评估关 antialias | Q6 Q9 | **已做**：空场景只在 layout 时 render 一帧；`antialias: false`（纯色清屏，观感不变） |
+| P1 | **一条 rAF**：idle +（可选）3D；飞星 tick 并进同一 loop，不要第三条永转 | Q5 MDN 同帧多回调 | **部分**：Three 永转已停。局内 idle rAF 仍要开（待机/提亮）。飞星仍是短 rAF，并进 idle 会改时序，未动 |
+| P2 | reduce-motion 或完全静止时 **cancel idle rAF** | Q5 | 未做（会停待机动画） |
+| P2 | 滑格改为格点瞬切 left/top + **transform 位移**。先看 P0 Layout 占比；毁手感 2 则回滚 | Q2 Q8 | **不做**（会改手感/观感） |
+| P3 | 拆常驻 will-change（`#stage`、glow、sprite、眼）。飞星窗口再挂 | Q3 | **部分**：已拆 `#stage`。glow/sprite/眼每帧都在动，拆了会掉帧，观感风险，未动 |
 | P3 | 飞星去掉 `mix-blend-mode: plus-lighter`（改 opacity/第二层贴图）。iOS 26 上 blend+filter 仍会印成不透明方块 | Q4 第三轮 | 可做，吃星时验 |
 | 不做 | 棋子 `filter: drop-shadow` | Q4 | 禁止 |
 | 不做 | 棋盘重写成 Canvas「为了 60fps」 | 棋子少 | 除非 P0 证明 DOM paint 爆 |

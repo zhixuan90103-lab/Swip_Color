@@ -26,7 +26,7 @@ async function boot(): Promise<void> {
   const stage = document.getElementById('stage')!;
   const uiRoot = document.getElementById('ui-root')!;
 
-  const renderer = await createRenderer({ container: stage });
+  const renderer = await createRenderer({ container: stage, antialias: false });
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf3eadc);
   const camera = new THREE.OrthographicCamera(
@@ -38,11 +38,16 @@ async function boot(): Promise<void> {
     1,
   );
 
+  const paintStage = () => {
+    renderer.render(scene, camera);
+  };
+
   const onLayout = (layout: StageLayout) => {
     applyStageTransform(stage, layout);
     applySafeAreaCssVars(Capacitor.isNativePlatform());
     renderer.setSize(DESIGN_WIDTH, DESIGN_HEIGHT, false);
     resizeToDesign(renderer);
+    paintStage();
   };
 
   const preview = mountDevicePreview(shell, viewportEl, () => {
@@ -60,10 +65,7 @@ async function boot(): Promise<void> {
   void audio.preload();
 
   const game = startIceGame({ uiRoot, stage });
-
-  renderer.setAnimationLoop(() => {
-    renderer.render(scene, camera);
-  });
+  paintStage();
 
   window.addEventListener(
     'pagehide',
@@ -72,7 +74,6 @@ async function boot(): Promise<void> {
       audio.dispose();
       unwatch();
       preview.dispose();
-      renderer.setAnimationLoop(null);
       renderer.dispose();
     },
     { once: true },

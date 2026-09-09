@@ -30,6 +30,7 @@ import {
   STAR_RISE_Y,
   STAR_TO_HUD_MS,
 } from './starPickup';
+import { createIrisWipe } from './irisWipe';
 import { PUSH_STEP_MS, createYouMotion, hitAmpForCells, hitDurationMs, type LookTarget } from './youMotion';
 
 const TUNE_KEY = 'ice-board-tune-v12';
@@ -1018,26 +1019,41 @@ export function startIceGame(opts: {
   const ro = new ResizeObserver(() => fitBoard());
   ro.observe(wrap);
 
+  const iris = createIrisWipe(root, {
+    prefersReduce: () => prefersReduceMotion(),
+    isDead: () => disposed,
+  });
+
   const loadLevel = (index: number) => {
     levelIndex = Math.max(0, Math.min(LEVELS.length - 1, index));
+    moveGen += 1;
+    youMotion.abort();
     busy = false;
     state = LEVELS[levelIndex]!.make();
     overlay.classList.add('hidden');
     paintStatic(state);
   };
 
-  const restart = () => {
+  const runIrisSwap = (swap: () => void) => {
     if (disposed) return;
-    loadLevel(levelIndex);
+    busy = true;
+    void iris.play(() => {
+      swap();
+      busy = true;
+    }).then(() => {
+      if (!disposed) busy = false;
+    });
+  };
+
+  const restart = () => {
+    runIrisSwap(() => loadLevel(levelIndex));
   };
 
   const goNext = () => {
-    if (disposed) return;
-    if (levelIndex >= LEVELS.length - 1) {
-      loadLevel(0);
-      return;
-    }
-    loadLevel(levelIndex + 1);
+    runIrisSwap(() => {
+      if (levelIndex >= LEVELS.length - 1) loadLevel(0);
+      else loadLevel(levelIndex + 1);
+    });
   };
 
   root.querySelector('#ice-restart')!.addEventListener('click', (e) => {
@@ -1157,6 +1173,7 @@ export function startIceGame(opts: {
   return {
     dispose() {
       disposed = true;
+      iris.dispose();
       youMotion.abort();
       boxMotion.abort();
       flyPool.releaseAll();

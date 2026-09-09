@@ -1,4 +1,4 @@
-import { tokenPos, type BoardLayout } from './boardLayout';
+import type { BoardLayout } from './boardLayout';
 import type { Cell } from './iceTypes';
 
 /** Occupancy wash: current cell 0.5, others 0. Same ice-a/ice-b art as the tile. */
@@ -87,40 +87,9 @@ export function createCellAdd(opts: {
     },
     hold,
     tick() {
-      const laid = opts.getLaid();
-      const board = opts.getBoard();
-      let x = 0;
-      let y = 0;
-      if (slideTrack) {
-        const u = Math.min(1, Math.max(0, (performance.now() - slideTrack.t0) / slideTrack.ms));
-        const a = tokenPos(laid, slideTrack.from);
-        const b = tokenPos(laid, slideTrack.to);
-        x = a.x + (b.x - a.x) * u;
-        y = a.y + (b.y - a.y) * u;
-      } else {
-        const youEl = opts.getYou();
-        if (!youEl) return;
-        x = parseFloat(getComputedStyle(youEl).left);
-        y = parseFloat(getComputedStyle(youEl).top);
-        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-      }
-      let best: Cell | null = null;
-      let bestD = Infinity;
-      board.querySelectorAll('.ice-cell[data-cell]:not(.is-pooled)').forEach((el) => {
-        const id = el.getAttribute('data-cell');
-        if (!id) return;
-        const parts = id.split('-');
-        const r = Number(parts[0]);
-        const c = Number(parts[1]);
-        if (!Number.isFinite(r) || !Number.isFinite(c)) return;
-        const p = tokenPos(laid, { r, c });
-        const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
-        if (d < bestD) {
-          bestD = d;
-          best = { r, c };
-        }
-      });
-      if (best) hold(best);
+      if (!slideTrack) return;
+      const u = Math.min(1, Math.max(0, (performance.now() - slideTrack.t0) / slideTrack.ms));
+      hold(u < 0.5 ? slideTrack.from : slideTrack.to);
     },
   };
 }

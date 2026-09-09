@@ -102,15 +102,18 @@ export function makeLevel4(): IceState {
   }), 'ccw');
 }
 
-/** 先 ① 停住，走开，再回来 ② 同一只。 */
+/** 先停后推，顶上多一只箱。 */
 export function makeLevel5(): IceState {
-  return orient(level(5, 6, {
-    player: at(1, 0),
-    boxes: [at(1, 2), at(1, 5)],
-    stars: [at(0, 4), at(3, 5)],
-    door: at(4, 2),
-    walls: [at(2, 0), at(3, 1), at(4, 1), at(4, 3), at(0, 5)],
-  }), 'ccw');
+  return orient(
+    level(5, 6, {
+      player: at(1, 0),
+      boxes: [at(1, 2), at(1, 5), at(0, 3)],
+      stars: [at(0, 4), at(3, 5)],
+      door: at(4, 2),
+      walls: [at(2, 0), at(3, 1), at(4, 1), at(4, 3), at(0, 5)],
+    }),
+    'id',
+  );
 }
 
 /** 枢纽用完再推走。 */
@@ -216,18 +219,15 @@ export function makeLevel13(): IceState {
   );
 }
 
-/** 先停后推，顶上多一只箱。 */
+/** 先 ① 停住，走开，再回来 ② 同一只。 */
 export function makeLevel14(): IceState {
-  return orient(
-    level(5, 6, {
-      player: at(1, 0),
-      boxes: [at(1, 2), at(1, 5), at(0, 3)],
-      stars: [at(0, 4), at(3, 5)],
-      door: at(4, 2),
-      walls: [at(2, 0), at(3, 1), at(4, 1), at(4, 3), at(0, 5)],
-    }),
-    'id',
-  );
+  return orient(level(5, 6, {
+    player: at(1, 0),
+    boxes: [at(1, 2), at(1, 5)],
+    stars: [at(0, 4), at(3, 5)],
+    door: at(4, 2),
+    walls: [at(2, 0), at(3, 1), at(4, 1), at(4, 3), at(0, 5)],
+  }), 'ccw');
 }
 
 /** 枢纽两次 + 推到 C + 再刹车进门。 */
@@ -249,7 +249,7 @@ const META: { title: string; hint: string }[] = [
   { title: '贴着推', hint: '贴着再滑，箱子跟人一起走。' },
   { title: '推到再推', hint: '先推到头，绕过去再推一次。空出来的路可以走回去。' },
   { title: '枢纽', hint: '中间那只箱先别推。从不同方向撞停。' },
-  { title: '先停后推', hint: '先撞停。走开把路走通，再回来推同一只。' },
+  { title: '星在角', hint: '先停后推。顶上多一只箱挡路。' },
   { title: '用完再走', hint: '同一只钉先当枢纽，再推到新位置接着用。' },
   { title: '停完再搬', hint: '先当刹车用完，再把它推到门前。' },
   { title: '偏心钉', hint: '车站不在正中间。先找到能停的那一格。' },
@@ -258,7 +258,7 @@ const META: { title: string; hint: string }[] = [
   { title: '从上往下', hint: '人在顶上。往下撞那只枢纽钉。' },
   { title: '闲箱', hint: '多一只箱堵着角。中间那只还是枢纽。' },
   { title: '顶上闲箱', hint: '偏心钉。顶上多一只箱，绕路吃星。' },
-  { title: '星在角', hint: '先停后推。顶上多一只箱挡路。' },
+  { title: '先停后推', hint: '先撞停。走开把路走通，再回来推同一只。' },
   { title: '收束', hint: '枢纽、推走、再停，三步进门。' },
 ];
 

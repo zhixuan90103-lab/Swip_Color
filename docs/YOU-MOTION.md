@@ -13,6 +13,7 @@ Juice **不改模拟**：格点先到位，再播表现。`prefers-reduced-motio
 | `src/game/cellAdd.ts` | 格子占用提亮 + 走过淡出 |
 | `src/game/starPickup.ts` | 领星 / 星待机常量 |
 | `src/game/iceGame.ts` | 何时开滑、撞停、吃星、结算 |
+| `src/game/irisWipe.ts` | 重开 / 下一关：镂空星收缩全黑再放大露场 |
 | `src/game/objectPool.ts` | 复用；闲置 class `is-pooled`，禁止 `hidden` |
 | `src/game/boardStack.ts` | 地板冰 0 / 提亮 1；门 3 星 4 箱 5 角色 9。JS 写 z-index |
 
@@ -141,3 +142,4 @@ HUD 三槽。评价公式仍是规则里的 **1 + 吃到的星**，见 ICE-PUZZL
 | `STAR_RISE_Y` / `STAR_RISE_MS` | 100px / 110ms |
 | `STAR_CROUCH_MS` / `DROP` / `TO_HUD` | 260ms / 50px / 280ms |
 | `BOX_HIT_IN_DIST` / hop / lean | 4px / 4px / 7° |
+| `IRIS_IN_MS` / `HOLD` / `OUT` | 780 / 500 / 860；`IRIS_OPEN_SCALE` 32；`IRIS_SPIN_DEG` 60（收/放都先偏 60°，缩放到头时回正） |

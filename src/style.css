@@ -89,7 +89,6 @@ body {
   overflow: hidden;
   background: var(--stage-bg);
   outline: none;
-  will-change: transform;
 }
 
 #stage canvas {
@@ -866,6 +865,21 @@ button:active {
   border: 1.5px dashed #e2c49a;
   border-radius: 999px;
   opacity: 1;
+}
+
+.ice-iris {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: auto;
+}
+
+.ice-iris.is-idle {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .ice-overlay {

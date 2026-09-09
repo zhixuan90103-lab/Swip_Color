@@ -94,6 +94,7 @@ renderer.setSize(390, 844)          // 始终设计分辨率
 - 无 `navigator.gpu` / init 失败 → `showFatal`  
 - DPR cap 默认 2  
 - 禁止 `setSize(innerWidth, innerHeight)` 跟窗走  
+- 棋盘是 DOM；空场景 **不** `setAnimationLoop`。layout / 首次各 `render` 一帧（纯色背景）。`antialias: false`（清屏无几何）  
 
 ## 7. Haptics
 
