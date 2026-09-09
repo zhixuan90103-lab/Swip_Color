@@ -3,7 +3,8 @@
 日期：**2026-09-09**。本文是**规则真源**。代码与本文冲突时改其中一侧。画面见 [VISUAL.md](./VISUAL.md)，运动 / juice 见 [YOU-MOTION.md](./YOU-MOTION.md)，**不要把表现写进规则**。
 
 实现：`src/game/iceSim.ts`（一滑）· `iceGame.ts`（画面、十五关连续、调参）· juice 见 [YOU-MOTION.md](./YOU-MOTION.md) · `boardLayout.ts`（槽位/托盘）· `levels.ts`（十五关）· `swipeInput.ts` + `FEEL2_DEFAULT`（出手）。  
-出题知识：[LEVEL-KNOWLEDGE.md](./LEVEL-KNOWLEDGE.md)。现行十五关：[LEVEL-TEMPLATES.md](./LEVEL-TEMPLATES.md)。
+出题知识：[LEVEL-KNOWLEDGE.md](./LEVEL-KNOWLEDGE.md)。现行十五关：[LEVEL-TEMPLATES.md](./LEVEL-TEMPLATES.md)。  
+画面叠层 / 对象池 / 接地：[VISUAL.md](./VISUAL.md) §4、§7。
 
 ---
 
@@ -135,6 +136,8 @@
 | `levels.ts` | 十五关（母本 + `orient` 整盘转朝向） |
 | `boardLayout.ts` | 托盘/槽位（第 1 关模板，大关放大托盘） |
 | `iceGame.ts` | `#ui-root` 画面、过关、下一关、重开、设/调参 |
+| `objectPool.ts` | DOM 复用；闲置 `is-pooled`（画面约定见 VISUAL §4 / §7） |
+| `boardStack.ts` | 棋盘叠层 `--row` / `--z-layer` |
 | `swipeInput.ts` · `swipeFeel2.ts` · `feel.ts` | 手感 2 出手 |
 | `dir.ts` | 0上 1右 2下 3左 ↔ 冰面方向 |
 

@@ -22,13 +22,16 @@
 | 九宫托盘 | `src/assets/ui/board-9slice.png` | `.ice-board-frame` `border-image`（slice **132**，边宽 **44px**） |
 | 冰砖浅 | `src/assets/ui/ice-a.png` | `.is-ice-a`，`(r+c)` 偶数 |
 | 冰砖深 | `src/assets/ui/ice-b.png` | `.is-ice-b`，奇数 |
-| 墙/石头 | `src/assets/ui/wall.png` | `.is-wall` |
-| 箱 | `src/assets/ui/crate.png` | `.ice-box` |
+| 墙/石头 | `src/assets/ui/wall.png` | `.wall-sprite` |
+| 石头投影 | `src/assets/ui/wall-shadow.png` | `.ground-blob.is-wall-blob`（217×239 透明底） |
+| 箱 | `src/assets/ui/crate.png` | `.box-rig` |
+| 箱投影 | `src/assets/ui/crate-shadow.png` | `.ground-blob.is-box-blob`（189×218 透明底） |
 | 星 | `src/assets/ui/star.png` | `.ice-star` |
 | 终点垫 | `src/assets/ui/door.png` | `.ice-door`（红色齿边垫，叠在冰格上，`contain`） |
-| 终点星 | 同 `star.png` | 门格装饰星：投影 + 泛光 + 待机浮；进门飞 HUD 第三槽，不计入收集 |
+| 终点星 | 同 `star.png` | 门格装饰星：泛光 + 待机浮，不要投影；进门飞 HUD 第三槽，不计入收集 |
 | 角色整图（备份） | `src/assets/ui/you.png` | 局内**不用** |
 | 角色身体 | `src/assets/ui/you/body.png` | `.you-body` |
+| 角色投影 | `src/assets/ui/you/shadow.png` | `.ground-blob.is-you-blob`（180×109 软椭圆，透明底） |
 | 眼白 | `src/assets/ui/you/eye.png` | `.you-eye` |
 | 瞳孔 | `src/assets/ui/you/pupil.png` | `.you-pupil` |
 
@@ -57,11 +60,12 @@
 | 影宽 / 影高 | 托盘投影层尺寸（随本关托盘同比） |
 | 箱子/角色/石头/星星/终点 | 各贴图边长 |
 | 箱/角/石/星 X·Y | 相对槽中心偏移（X 右正，Y 下正） |
+| 角色影 / 影X / 影Y | 角色投影贴图宽（高按 180×109 同比）；相对脚底偏移（X 右正，Y 下正） |
 | 光大小/X/Y/透明 | 星星格中心黄色泛光 |
 
-现行默认见 `TUNE_DEFAULT`（宽 360、高 366、格子 60、缝 2、框距 -20、冰砖透明 25、箱 66 / 箱X 1 / 箱Y -2、角色 66 / 角Y -10、石头 66、星 70 / 星Y -15、光 60 / 光Y 5 / 光透明 60、终点 70）。
+现行默认见 `TUNE_DEFAULT`（宽 360、高 366、格子 60、缝 2、框距 -20、冰砖透明 25、箱 66 / 箱X 1 / 箱Y -2、角色 66 / 角Y -10、角色影 50 / 影X 0 / 影Y 7、石头 66、星 70 / 星Y -15、光 60 / 光Y 5 / 光透明 60、终点 70）。
 
-localStorage 键：`ice-board-tune-v10`。改默认时升版本，避免旧缓存盖住新值。
+localStorage 键：`ice-board-tune-v12`。改默认时升版本，避免旧缓存盖住新值。
 
 5×5 → 托盘 360×366；5×6 → 约 423×366；6×6 → 约 423×429。超出中间区域则 `fitBoard` 整体 `scale` 放下，相对比例不变。
 
@@ -69,21 +73,28 @@ localStorage 键：`ice-board-tune-v10`。改默认时升版本，避免旧缓�
 
 ## 4. 层级
 
-常量：`src/game/boardStack.ts` 的 `Z_LAYER`。棋子设 `--row` / `--z-layer`，CSS：
+真源：`src/game/boardStack.ts` 的 `stackZ` + `placeBoardItem`（**JS 写 `z-index`**）。  
+**禁止**再在 `.ice-piece` / `.ice-cell` 上写 `z-index`（`!important` 和 CSS `calc` 会把提亮压进地板）。不要靠 DOM 顺序。
 
-`z-index: calc((var(--row) + 1) * 10 + var(--z-layer))`
+**地板（不管行号，永远在角色脚下）：**
 
-**不要靠 DOM 顺序叠层**（对象池回收后顺序不稳定）。冰砖整盘 `z-index: 0`。
+| z | 物件 |
+|---|------|
+| 0 | 冰砖。`.ice-cell-add` 叠在砖上，同一张 `ice-a`/`ice-b`；角色所在格 0.5，其余 0 |
 
-| `--z-layer` | 物件 |
-|-------------|------|
-| 0 | 冰砖 + 占用提亮（`.ice-cell-add`，径向加亮，无 mix-blend） |
+**角色带（南边 / 行号大的在前）：** `z = (row + 1) * 10 + layer`
+
+| layer | 物件 |
+|-------|------|
 | 2 | 墙、星光 |
 | 3 | 终点垫 |
-| 4 | 星（含终点装饰星，必须盖在垫上） |
-| 5 | 箱、角色 |
+| 4 | 星（含终点装饰星） |
+| 5 | 箱 |
+| 9 | 角色（同行最上；下一行仍盖过本行） |
 
-闲置棋子 class **`is-pooled`**（`display: none !important`）。禁止用 `hidden` 属性停显示：作者样式 `display: flex` 会盖掉 UA 的 `[hidden]`，回收的箱子会钉在棋盘左上角。
+棋子内部（脚影 / 贴图）用自己的 `z-index: 0|1`，只在该棋子的叠层上下文里。
+
+闲置棋子 class **`is-pooled`**（`display: none !important`）。禁止用 `hidden` 属性停显示：作者样式 `display: flex` 会盖掉 UA 的 `[hidden]`，回收的箱子会钉在棋盘左上角。查询活棋子一律 `:not(.is-pooled)`。
 
 ---
 
@@ -103,7 +114,25 @@ localStorage 键：`ice-board-tune-v10`。改默认时升版本，避免旧缓�
 |------|------|
 | `boardLayout.ts` | 槽位、托盘、`TUNE_*` |
 | `iceGame.ts` | DOM、调参、走棋编排 |
+| `objectPool.ts` | 复用；停车 class `is-pooled` |
+| `boardStack.ts` | `Z_LAYER`、`placeBoardItem` |
 | `youMotion.ts` / `boxMotion.ts` / `cellAdd.ts` / `starPickup.ts` | juice，见 YOU-MOTION |
-| `src/style.css` | 贴图与 CSS 变量 |
+| `src/style.css` | 贴图、叠层公式、脚影、提亮 |
 | `src/assets/ui/*` | 运行时棋子/托盘 |
 | `public/ui/table-bg.png` | 桌面背景 |
+
+---
+
+## 7. 翻车收成（现行硬约定）
+
+这些不是补丁，是设计。再改画面先对照本表。
+
+| 现象 | 禁止 | 现行 |
+|------|------|------|
+| 关卡切完左上角还挂着箱子 | HTML `hidden` 停车 | class `is-pooled` + `display:none !important` |
+| 门盖住星 / 叠层随关卡乱跳 / 提亮看不见 | CSS 和 JS 两套 z-index、冰砖 `z-index:0 !important` | 只走 `stackZ`；冰 0、提亮 1、角色 9 |
+| 滑动时像两个角色 | 复制 `body.png` 当投影 | `.ground-blob.is-you-blob` 脚底接触椭圆，贴在身体底部曲线 |
+| 投影横切加黑 / 被裁 / 滑动闪没 | 任何棋子上的 `filter: drop-shadow`（含静止 `.box-cast`） | 接地只有 `.ground-blob`。`filter` 在 WKWebView 里会按合成层裁切，画成黑带。星只用泛光 |
+| 走过格子发黑方块 / 切格一闪 | `mix-blend`、`overflow:hidden` 切占用层、瞬间 opacity 打满再 transition | `.ice-cell-add` 径向**加亮**；淡入淡出同一条 opacity；冰格 overflow 可见 |
+
+接地跟**平面形状**：圆角色用椭圆，方箱子/石头用圆角方板 + `box-shadow`。都走 `.ground-blob`，禁止 `filter: drop-shadow`。星只有黄色泛光。数字见 YOU-MOTION §6 / §8。

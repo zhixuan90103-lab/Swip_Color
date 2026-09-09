@@ -32,7 +32,7 @@ import {
 } from './starPickup';
 import { PUSH_STEP_MS, createYouMotion, hitAmpForCells, hitDurationMs, type LookTarget } from './youMotion';
 
-const TUNE_KEY = 'ice-board-tune-v10';
+const TUNE_KEY = 'ice-board-tune-v12';
 const STEP_MS = FEEL2_DEFAULT.slideMs;
 
 function loadTune(): BoardTune {
@@ -61,6 +61,9 @@ function loadTune(): BoardTune {
       boxY: clampTune(parsed.boxY, TUNE_RANGE.boxY.min, TUNE_RANGE.boxY.max, TUNE_DEFAULT.boxY),
       youX: clampTune(parsed.youX, TUNE_RANGE.youX.min, TUNE_RANGE.youX.max, TUNE_DEFAULT.youX),
       youY: clampTune(parsed.youY, TUNE_RANGE.youY.min, TUNE_RANGE.youY.max, TUNE_DEFAULT.youY),
+      youShadow: clampTune(parsed.youShadow, TUNE_RANGE.youShadow.min, TUNE_RANGE.youShadow.max, TUNE_DEFAULT.youShadow),
+      youShadowX: clampTune(parsed.youShadowX, TUNE_RANGE.youShadowX.min, TUNE_RANGE.youShadowX.max, TUNE_DEFAULT.youShadowX),
+      youShadowY: clampTune(parsed.youShadowY, TUNE_RANGE.youShadowY.min, TUNE_RANGE.youShadowY.max, TUNE_DEFAULT.youShadowY),
       wallX: clampTune(parsed.wallX, TUNE_RANGE.wallX.min, TUNE_RANGE.wallX.max, TUNE_DEFAULT.wallX),
       wallY: clampTune(parsed.wallY, TUNE_RANGE.wallY.min, TUNE_RANGE.wallY.max, TUNE_DEFAULT.wallY),
       starSize: clampTune(parsed.starSize, TUNE_RANGE.starSize.min, TUNE_RANGE.starSize.max, TUNE_DEFAULT.starSize),
@@ -109,7 +112,6 @@ export function startIceGame(opts: {
   type StarIdle = {
     root: HTMLElement;
     sprite: HTMLElement;
-    shadow: HTMLElement;
     glow: HTMLElement | null;
     phase: number;
   };
@@ -250,6 +252,21 @@ export function startIceGame(opts: {
         <b id="tune-youY-v"></b>
       </label>
       <label class="tune-row">
+        <span>角色影</span>
+        <input id="tune-youShadow" type="range" min="${TUNE_RANGE.youShadow.min}" max="${TUNE_RANGE.youShadow.max}" step="1" />
+        <b id="tune-youShadow-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>影X</span>
+        <input id="tune-youShadowX" type="range" min="${TUNE_RANGE.youShadowX.min}" max="${TUNE_RANGE.youShadowX.max}" step="1" />
+        <b id="tune-youShadowX-v"></b>
+      </label>
+      <label class="tune-row">
+        <span>影Y</span>
+        <input id="tune-youShadowY" type="range" min="${TUNE_RANGE.youShadowY.min}" max="${TUNE_RANGE.youShadowY.max}" step="1" />
+        <b id="tune-youShadowY-v"></b>
+      </label>
+      <label class="tune-row">
         <span>石X</span>
         <input id="tune-wallX" type="range" min="${TUNE_RANGE.wallX.min}" max="${TUNE_RANGE.wallX.max}" step="1" />
         <b id="tune-wallX-v"></b>
@@ -331,7 +348,8 @@ export function startIceGame(opts: {
   });
   const wallPool = createDomPool({
     parent: board,
-    create: () => makeEl('ice-cell is-wall'),
+    create: () =>
+      makeEl('ice-cell is-wall', '<span class="ground-blob is-wall-blob"></span><span class="wall-sprite"></span>'),
     reset(n) {
       n.className = 'ice-piece ice-cell is-wall';
       n.removeAttribute('style');
@@ -349,7 +367,7 @@ export function startIceGame(opts: {
   });
   const starPool = createDomPool({
     parent: board,
-    create: () => makeEl('ice-star', '<span class="ice-star-shadow"></span><span class="ice-star-sprite"></span>'),
+    create: () => makeEl('ice-star', '<span class="ice-star-sprite"></span>'),
     reset(n) {
       n.className = 'ice-piece ice-star';
       n.removeAttribute('data-star');
@@ -369,7 +387,7 @@ export function startIceGame(opts: {
   });
   const boxPool = createDomPool({
     parent: board,
-    create: () => makeEl('ice-box', '<span class="box-rig"></span>'),
+    create: () => makeEl('ice-box', '<span class="ground-blob is-box-blob"></span><span class="box-rig"></span>'),
     reset(n) {
       n.removeAttribute('id');
       n.removeAttribute('style');
@@ -408,7 +426,7 @@ export function startIceGame(opts: {
 
   const youEl = makeEl(
     'ice-you',
-    '<span class="you-shadow"></span><span class="you-rig"><span class="you-body"></span><span class="you-eye"><span class="you-pupil"></span></span></span>',
+    '<span class="ground-blob is-you-blob"></span><span class="you-rig"><span class="you-body"></span><span class="you-eye"><span class="you-pupil"></span></span></span>',
   );
   youEl.id = 'ice-you';
   board.appendChild(youEl);
@@ -510,19 +528,19 @@ export function startIceGame(opts: {
     shell.style.transform = `scale(${scale})`;
   }
 
-  function placeAt(el: HTMLElement, c: Cell): void {
+  function placeAt(el: HTMLElement, c: Cell, layer: (typeof Z_LAYER)[keyof typeof Z_LAYER]): void {
     const p = tokenPos(laid, c);
-    placeBoardItem(el, p.x, p.y, c.r, Z_LAYER.actor);
+    placeBoardItem(el, p.x, p.y, c.r, layer);
   }
 
   function placeTokens(s: IceState): void {
     const you = board.querySelector('#ice-you') as HTMLElement | null;
-    if (you) placeAt(you, s.player);
+    if (you) placeAt(you, s.player, Z_LAYER.you);
     cellAdd.hold(s.player);
     s.boxes.forEach((b, i) => {
       const el = board.querySelector(`#ice-box-${i}`) as HTMLElement | null;
       if (!el) return;
-      placeAt(el, b);
+      placeAt(el, b, Z_LAYER.box);
     });
   }
 
@@ -544,13 +562,11 @@ export function startIceGame(opts: {
     idleStars = [];
     board.querySelectorAll('.ice-star:not(.is-pooled)').forEach((el) => {
       const sprite = el.querySelector('.ice-star-sprite') as HTMLElement | null;
-      const shadow = el.querySelector('.ice-star-shadow') as HTMLElement | null;
-      if (!sprite || !shadow) return;
+      if (!sprite) return;
       const id = el.getAttribute('data-star');
       idleStars.push({
         root: el as HTMLElement,
         sprite,
-        shadow,
         glow: id ? (board.querySelector(`[data-star-glow="${id}"]`) as HTMLElement | null) : null,
         phase: Number(el.getAttribute('data-phase')) || 0,
       });
@@ -860,6 +876,9 @@ export function startIceGame(opts: {
     root.style.setProperty('--ice-box-y', `${tune.boxY}px`);
     root.style.setProperty('--ice-you-x', `${tune.youX}px`);
     root.style.setProperty('--ice-you-y', `${tune.youY}px`);
+    root.style.setProperty('--ice-you-shadow', `${tune.youShadow}px`);
+    root.style.setProperty('--ice-you-shadow-x', `${tune.youShadowX}px`);
+    root.style.setProperty('--ice-you-shadow-y', `${tune.youShadowY}px`);
     root.style.setProperty('--ice-wall-x', `${tune.wallX}px`);
     root.style.setProperty('--ice-wall-y', `${tune.wallY}px`);
     root.style.setProperty('--ice-star', `${tune.starSize}px`);
@@ -889,6 +908,9 @@ export function startIceGame(opts: {
       'boxY',
       'youX',
       'youY',
+      'youShadow',
+      'youShadowX',
+      'youShadowY',
       'wallX',
       'wallY',
       'starSize',
@@ -931,6 +953,9 @@ export function startIceGame(opts: {
       key === 'boxY' ||
       key === 'youX' ||
       key === 'youY' ||
+      key === 'youShadow' ||
+      key === 'youShadowX' ||
+      key === 'youShadowY' ||
       key === 'wallX' ||
       key === 'wallY' ||
       key === 'starSize' ||
@@ -964,6 +989,9 @@ export function startIceGame(opts: {
   root.querySelector('#tune-boxY')!.addEventListener('input', onTuneInput('boxY'));
   root.querySelector('#tune-youX')!.addEventListener('input', onTuneInput('youX'));
   root.querySelector('#tune-youY')!.addEventListener('input', onTuneInput('youY'));
+  root.querySelector('#tune-youShadow')!.addEventListener('input', onTuneInput('youShadow'));
+  root.querySelector('#tune-youShadowX')!.addEventListener('input', onTuneInput('youShadowX'));
+  root.querySelector('#tune-youShadowY')!.addEventListener('input', onTuneInput('youShadowY'));
   root.querySelector('#tune-wallX')!.addEventListener('input', onTuneInput('wallX'));
   root.querySelector('#tune-wallY')!.addEventListener('input', onTuneInput('wallY'));
   root.querySelector('#tune-starSize')!.addEventListener('input', onTuneInput('starSize'));
@@ -1055,9 +1083,9 @@ export function startIceGame(opts: {
       const prev = result.playerPath[i - 1]!;
       const next = result.playerPath[i]!;
       cellAdd.beginStep(prev, next, performance.now(), stepMs);
-      placeAt(you, next);
+      placeAt(you, next, Z_LAYER.you);
       if (boxEl && result.boxPath && result.boxPath[i]) {
-        placeAt(boxEl, result.boxPath[i]!);
+        placeAt(boxEl, result.boxPath[i]!, Z_LAYER.box);
       }
       const here = result.playerPath[i]!;
       if (picked[pi] && picked[pi]!.r === here.r && picked[pi]!.c === here.c) {

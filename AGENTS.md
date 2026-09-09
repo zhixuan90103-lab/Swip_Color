@@ -32,7 +32,7 @@
 | 画面/资源 | `docs/VISUAL.md` · `src/game/boardLayout.ts` · `src/assets/ui/` |
 | 运动 juice | `docs/YOU-MOTION.md` · `src/game/youMotion.ts` · `boxMotion.ts` · `cellAdd.ts` · `starPickup.ts` |
 | 对象池 | `src/game/objectPool.ts`（`.is-pooled` 停车，不用 `hidden`） |
-| 棋盘层级 | `src/game/boardStack.ts`（`--row` + `--z-layer`，不靠 DOM 顺序） |
+| 棋盘层级 | `src/game/boardStack.ts`（`stackZ` 写 `z-index`；冰 0、提亮 1、角色 9） |
 | 文档索引 | `docs/README.md` |
 
 ## DOM（勿拆）
@@ -55,6 +55,7 @@
 7. **改 Swift 改 `plugins/native-haptics/` 或 `plugins/native-audio/`** 再 `ios:bootstrap`。震动见 `docs/HAPTICS.md`；音效见 `docs/AUDIO.md`。Capacitor 8 的 `SceneDelegate` 必须 `rootViewController = BridgeViewController()`。真机验收：局内「震」按钮。  
 8. **无 WebGPU 则明确失败**，不静默 WebGL  
 9. **音效** 禁止热路径 `new Audio()` / 每发一次桥；iOS 生产禁止 WebAudio。  
+10. **闲置棋子** class `is-pooled`，禁止 HTML `hidden`。叠层只走 `boardStack.stackZ`（禁止 CSS 再写棋子 `z-index`）。脚影用投影图；禁止 `filter` 画在 `.you-rig`。格子占用是径向加亮，禁止 mix-blend。详见 `docs/VISUAL.md` §4、§7。  
 
 ## 命令
 
@@ -76,6 +77,7 @@ npm run ios
 - 玩法：改 `src/game/*`，规则以 `docs/ICE-PUZZLE.md` 为准  
 - 画面：改 `src/assets/ui/`、`public/ui/table-bg.png`、`boardLayout.ts` 的 `TUNE_DEFAULT`；规范以 `docs/VISUAL.md` 为准  
 - 角色/场面 juice：改 `youMotion.ts` / `boxMotion.ts` / `cellAdd.ts` / `starPickup.ts`；规范以 `docs/YOU-MOTION.md` 为准  
+- 对象池 / 叠层：改 `objectPool.ts` / `boardStack.ts` / `.ice-piece` CSS；规范以 `docs/VISUAL.md` §4、§7 为准  
 - 出手：手感 2（`swipeInput.ts` + `FEEL2_DEFAULT`），不要另写薄滑动替换它  
 - 保留：adapt / create-renderer / haptics / plugins / `base`  
 - 触控：忽略 letterbox 外；关卡矩形铺满冰格，非必要不放墙、不挖空  

@@ -312,6 +312,9 @@ button:active {
   --ice-box-y: -2px;
   --ice-you-x: 0px;
   --ice-you-y: -10px;
+  --ice-you-shadow: 50px;
+  --ice-you-shadow-x: 0px;
+  --ice-you-shadow-y: 7px;
   --ice-wall-x: 0px;
   --ice-wall-y: 0px;
   --ice-star: 70px;
@@ -520,6 +523,8 @@ button:active {
   position: absolute;
   box-sizing: content-box;
   margin: 0;
+  overflow: visible;
+  isolation: isolate;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -546,44 +551,90 @@ button:active {
   position: absolute;
   inset: 0;
   pointer-events: none;
-}
-
-.ice-cell-tile {
   background-repeat: no-repeat;
   background-position: center;
   background-size: 100% 100%;
+}
+
+.ice-cell-tile {
   opacity: var(--ice-tile-opacity);
 }
 
-/* Highlight wash only. No mix-blend — iOS stamps it as a dark square. */
 .ice-cell-add {
   z-index: 1;
   opacity: 0;
-  background: radial-gradient(
-    circle at 50% 48%,
-    rgba(255, 255, 255, 0.55) 0%,
-    rgba(210, 235, 255, 0.22) 42%,
-    rgba(210, 235, 255, 0) 74%
-  );
 }
 
-.ice-cell.is-ice-a .ice-cell-tile {
+.ice-cell.is-ice-a .ice-cell-tile,
+.ice-cell.is-ice-a .ice-cell-add {
   background-image: url('./assets/ui/ice-a.png');
 }
 
-.ice-cell.is-ice-b .ice-cell-tile {
+.ice-cell.is-ice-b .ice-cell-tile,
+.ice-cell.is-ice-b .ice-cell-add {
   background-image: url('./assets/ui/ice-b.png');
 }
 
 .ice-cell.is-wall {
   width: var(--ice-wall);
   height: var(--ice-wall);
+  overflow: visible;
   transform: translate(calc(-50% + var(--ice-wall-x)), calc(-50% + var(--ice-wall-y)));
-  background: url('./assets/ui/wall.png') center / contain no-repeat;
+  background: none;
   background-color: transparent;
   border-radius: 0;
   box-shadow: none;
-  filter: drop-shadow(0 3px 2px rgba(48, 62, 98, 0.5));
+  filter: none;
+}
+
+.wall-sprite {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: url('./assets/ui/wall.png') center / contain no-repeat;
+  pointer-events: none;
+  filter: none;
+}
+
+/* Ground contact. Never CSS filter — drop-shadow is clipped / stamped as a
+   black band on iOS WKWebView. Round sprite → ellipse; square sprite →
+   rounded-rect plate + box-shadow. Stars use glow only. */
+.ground-blob {
+  position: absolute;
+  left: 50%;
+  z-index: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  filter: none;
+}
+
+.is-you-blob {
+  width: var(--ice-you-shadow);
+  height: calc(var(--ice-you-shadow) * 109 / 180);
+  left: 50%;
+  bottom: 0;
+  border-radius: 0;
+  transform: translate(calc(-50% + var(--ice-you-shadow-x)), var(--ice-you-shadow-y));
+  background: url('./assets/ui/you/shadow.png') center / contain no-repeat;
+  box-shadow: none;
+}
+
+.is-box-blob {
+  width: 100%;
+  height: 115%;
+  bottom: -10%;
+  border-radius: 0;
+  background: url('./assets/ui/crate-shadow.png') center / contain no-repeat;
+  box-shadow: none;
+}
+
+.is-wall-blob {
+  width: 100%;
+  height: 110%;
+  bottom: -10%;
+  border-radius: 0;
+  background: url('./assets/ui/wall-shadow.png') center / contain no-repeat;
+  box-shadow: none;
 }
 
 .ice-door {
@@ -598,15 +649,7 @@ button:active {
   pointer-events: none;
 }
 
-/* Stacking: z = (row+1)*10 + --z-layer. Parking: .is-pooled, never [hidden]. */
-.ice-piece {
-  z-index: calc((var(--row, 0) + 1) * 10 + var(--z-layer, 0));
-}
-
-.ice-cell:not(.is-wall) {
-  z-index: 0;
-}
-
+/* Board z-index is set in JS (boardStack.placeBoardItem). Do not set it here. */
 .ice-piece.is-pooled {
   display: none !important;
 }
@@ -621,6 +664,7 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
   transform: translate(-50%, -50%);
   transform-origin: center center;
   transition: left 50ms linear, top 50ms linear;
@@ -651,20 +695,6 @@ button:active {
   background: none;
   pointer-events: none;
   overflow: visible;
-}
-
-.ice-star-shadow {
-  position: absolute;
-  left: 50%;
-  bottom: 10%;
-  width: 44%;
-  height: 16%;
-  transform: translateX(-50%) scale(1);
-  transform-origin: center center;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(40, 48, 72, 0.38) 0%, rgba(40, 48, 72, 0) 72%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .ice-star-sprite {
@@ -736,6 +766,7 @@ button:active {
   --box-hit-y: 0px;
   width: var(--ice-box);
   height: var(--ice-box);
+  overflow: visible;
   transform: translate(
     calc(-50% + var(--ice-box-x) + var(--box-hit-x)),
     calc(-50% + var(--ice-box-y) + var(--box-hit-y))
@@ -747,13 +778,14 @@ button:active {
 }
 
 .box-rig {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
   transform-origin: 50% 50%;
   background: url('./assets/ui/crate.png') center / contain no-repeat;
-  filter: drop-shadow(0 3px 2px rgba(48, 62, 98, 0.5));
-  will-change: transform;
+  filter: none;
 }
 
 .ice-you {
@@ -772,21 +804,6 @@ button:active {
   filter: none;
 }
 
-/* Ground blob under the feet. Do not copy body.png here — a still silhouette
-   plus a leaning rig reads as two characters. */
-.you-shadow {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  z-index: 0;
-  width: 62%;
-  height: 18%;
-  pointer-events: none;
-  border-radius: 50%;
-  transform: translateX(-50%);
-  background: radial-gradient(ellipse, rgba(40, 48, 72, 0.38) 0%, rgba(40, 48, 72, 0) 72%);
-}
-
 .you-rig {
   position: relative;
   z-index: 1;
@@ -794,7 +811,6 @@ button:active {
   height: 100%;
   aspect-ratio: 163 / 216;
   transform-origin: 50% 100%;
-  will-change: transform;
   filter: none;
 }
 

@@ -29,6 +29,9 @@ export type BoardTune = {
   boxY: number;
   youX: number;
   youY: number;
+  youShadow: number;
+  youShadowX: number;
+  youShadowY: number;
   wallX: number;
   wallY: number;
   starSize: number;
@@ -57,6 +60,9 @@ export const TUNE_DEFAULT: BoardTune = {
   boxY: -2,
   youX: 0,
   youY: -10,
+  youShadow: 50,
+  youShadowX: 0,
+  youShadowY: 7,
   wallX: 0,
   wallY: 0,
   starSize: 70,
@@ -85,6 +91,9 @@ export const TUNE_RANGE = {
   boxY: { min: -24, max: 24 },
   youX: { min: -24, max: 24 },
   youY: { min: -24, max: 24 },
+  youShadow: { min: 16, max: 120 },
+  youShadowX: { min: -32, max: 32 },
+  youShadowY: { min: -32, max: 32 },
   wallX: { min: -24, max: 24 },
   wallY: { min: -24, max: 24 },
   starSize: { min: 20, max: 120 },

@@ -19,7 +19,7 @@ portrait-webgpu-base/
 ├── public/ui/              # table-bg.png（桌面背景）
 ├── src/
 │   ├── main.ts             # 启动 + startIceGame
-│   ├── game/               # 冰面模拟 / 手感2 / 十五关 / 托盘布局
+│   ├── game/               # 冰面模拟 / 手感2 / 十五关 / 托盘 / 对象池 / 叠层
 │   ├── assets/ui/          # 运行时棋子与九宫托盘
 │   ├── create-renderer.ts
 │   ├── style.css
@@ -50,7 +50,7 @@ portrait-webgpu-base/
 
 | 项 | 值 |
 |----|-----|
-| `appId` | 在 `capacitor.config.ts` 自定，避免和真机已装 App 冲突 |
+| `appId` | `com.wangzhixuan.iceslide`（`capacitor.config.ts`；勿改回 swipe2048） |
 | `webDir` | `dist` |
 | `ios.contentInset` | `never` |
 | `ios.scrollEnabled` | `false` |
@@ -145,6 +145,8 @@ npm run cap:sync
 5. `dist` / `ios/.../public` 是产物  
 6. 真机安装前改 `capacitor.config.ts` 的 `appId`，避免覆盖别的 App  
 7. 震动没接上：先看 [HAPTICS.md §0](./HAPTICS.md)。常见断点是 SceneDelegate 仍是默认 VC，不是 storyboard 没改。不要只 `cap:sync`，不要用 `prepare()` 当验收  
+8. 棋子复用：停车用 `.is-pooled`，不要 `hidden`；叠层用 `--row`/`--z-layer`。见 [VISUAL.md §7](./VISUAL.md)  
+9. iOS：棋子禁止 `filter: drop-shadow`（合成层会裁切滤镜，画出横切黑带）。接地用 `.ground-blob`。
 
 ## 10. 变更
 
@@ -156,3 +158,4 @@ npm run cap:sync
 | 2026-08-31 | 真机震动验通。根因：Capacitor 8 `SceneDelegate` 绕过 storyboard。bootstrap 现会改 SceneDelegate；HUD 用「点我震动」+ `plugin` 标志验收 |
 | 2026-09-02 | 音效落地：两套（短 tick / 长按咔），合优先于滑，出手即播。见 AUDIO.md |
 | 2026-09-07 | 删除 2048 / 贪吃蛇玩法。接入冰面推箱十关；出手恢复手感 2。规范见 ICE-PUZZLE.md |
+| 2026-09-09 | 对象池 `is-pooled`、CSS 叠层、脚底椭圆影 + 格子径向提亮写成 VISUAL §7。包名 Ice Slide / `com.wangzhixuan.iceslide` |

@@ -1,8 +1,8 @@
 import { tokenPos, type BoardLayout } from './boardLayout';
 import type { Cell } from './iceTypes';
 
-/** Occupancy wash on ice. Highlight only — never mix-blend (iOS stamps it dark). */
-export const CELL_ADD_OP = 0.35;
+/** Occupancy wash: current cell 0.5, others 0. Same ice-a/ice-b art as the tile. */
+export const CELL_ADD_OP = 0.5;
 export const CELL_ADD_FADE_MS = 450;
 
 export function cellAddFadeMs(stepMs: number, baseStepMs: number): number {
@@ -42,11 +42,16 @@ export function createCellAdd(opts: {
       add.style.opacity = on ? String(CELL_ADD_OP) : '0';
       return;
     }
-    const ms = on
-      ? Math.min(120, cellAddFadeMs(stepMs, opts.getBaseStepMs()) * 0.25)
-      : cellAddFadeMs(stepMs, opts.getBaseStepMs());
-    add.style.transition = `opacity ${ms}ms ${on ? 'ease-out' : 'ease-out'}`;
-    add.style.opacity = on ? String(CELL_ADD_OP) : '0';
+    // Enter must snap: a 50ms ice step is shorter than the old 120ms fade-in,
+    // so mid-path cells never reached 0.5. Leave still fades for the trail.
+    if (on) {
+      add.style.transition = 'none';
+      add.style.opacity = String(CELL_ADD_OP);
+      return;
+    }
+    const ms = cellAddFadeMs(stepMs, opts.getBaseStepMs());
+    add.style.transition = `opacity ${ms}ms ease-out`;
+    add.style.opacity = '0';
   }
 
   function hold(c: Cell): void {
