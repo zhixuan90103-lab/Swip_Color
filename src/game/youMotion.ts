@@ -214,6 +214,8 @@ export function createYouMotion(opts: { getLookTargets: () => LookTarget[] }): Y
       prev = 0;
     },
     startSlide(dir, now) {
+      hitOn = false;
+      hitDir = null;
       slideDir = dir;
       slideLookDir = dir;
       slideEyeStart = now;

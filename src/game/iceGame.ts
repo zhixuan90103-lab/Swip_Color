@@ -100,6 +100,7 @@ export function startIceGame(opts: {
   let state = LEVELS[0]!.make();
   let busy = false;
   let disposed = false;
+  let moveGen = 0;
   let fxGen = 0;
   let starFxWait: Promise<void>[] = [];
   let idleRaf = 0;
@@ -937,7 +938,9 @@ export function startIceGame(opts: {
   async function playDir(dir: Dir): Promise<void> {
     if (busy || state.won || disposed) return;
     const result = applyDir(state, dir);
+    const gen = ++moveGen;
     busy = true;
+    boxMotion.abort();
     youMotion.startSlide(dir, performance.now());
     const you = board.querySelector('#ice-you') as HTMLElement;
     const boxEl =
@@ -970,7 +973,7 @@ export function startIceGame(opts: {
         starFxWait.push(collectStarFx(state.door, 2));
       }
       await sleep(stepMs);
-      if (disposed) {
+      if (disposed || gen !== moveGen) {
         youMotion.abort();
         boxMotion.abort();
         return;
@@ -978,8 +981,14 @@ export function startIceGame(opts: {
     }
 
     cellAdd.endTrack();
+    state = result.state;
+    placeTokens(state);
+    busy = false;
+    swipe.onMoveSettled();
+
     const cells = Math.max(0, steps - 1);
     const now = performance.now();
+    if (gen !== moveGen) return;
     youMotion.startHit(dir, now, cells);
     youMotion.endSlide();
     const stop = result.playerPath[steps - 1]!;
@@ -990,17 +999,13 @@ export function startIceGame(opts: {
     if (boxI < 0 && result.pushedBox != null) boxI = result.pushedBox;
     const hitBox = boxI >= 0 ? (board.querySelector(`#ice-box-${boxI}`) as HTMLElement | null) : null;
     if (hitBox) boxMotion.startHit(hitBox, dir, now, hitAmpForCells(cells));
-    await sleep(hitDurationMs(cells));
-
-    state = result.state;
-    placeTokens(state);
 
     if (state.won) {
       await Promise.all(starFxWait);
       starFxWait = [];
-      if (disposed) return;
+      if (disposed || gen !== moveGen) return;
       await sleep(prefersReduceMotion() ? 0 : 280);
-      if (disposed) return;
+      if (disposed || gen !== moveGen) return;
       const n = ratingStars(state);
       const last = levelIndex >= LEVELS.length - 1;
       overKicker.textContent = last ? '全部通关' : `第 ${LEVELS[levelIndex]!.id} 关`;
@@ -1010,10 +1015,10 @@ export function startIceGame(opts: {
       void haptics.notification('success');
     } else {
       void haptics.impact(result.kind === 'push' ? 'medium' : 'light');
+      await sleep(hitDurationMs(cells));
+      if (gen !== moveGen) return;
+      youMotion.endSlide();
     }
-    youMotion.endSlide();
-    busy = false;
-    swipe.onMoveSettled();
   }
 
   root.querySelector('#haptic-tap')!.addEventListener('click', (e) => {
