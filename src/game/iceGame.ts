@@ -101,6 +101,7 @@ export function startIceGame(opts: {
   let busy = false;
   let disposed = false;
   let fxGen = 0;
+  let starFxWait: Promise<void>[] = [];
   let idleRaf = 0;
   type StarIdle = {
     root: HTMLElement;
@@ -141,6 +142,7 @@ export function startIceGame(opts: {
       <div class="ice-stars" id="ice-stars" aria-hidden="true">
         <span class="hud-star" data-i="0"></span>
         <span class="hud-star" data-i="1"></span>
+        <span class="hud-star" data-i="2"></span>
       </div>
       <button type="button" class="ice-restart" id="ice-restart">重开</button>
       <button type="button" class="ice-haptic" id="haptic-tap">震</button>
@@ -319,6 +321,7 @@ export function startIceGame(opts: {
 
   function paintStatic(s: IceState): void {
     fxGen += 1;
+    starFxWait = [];
     opts.stage.querySelectorAll('.ice-star-fly, .ice-star-burst').forEach((el) => el.remove());
     laid = layoutBoard(tune, s.rows, s.cols);
     applyTuneCss();
@@ -349,8 +352,12 @@ export function startIceGame(opts: {
     }
     {
       const p = tokenPos(laid, s.door);
+      const phase = ((s.door.r * 3 + s.door.c) % 7) / 7;
       parts.push(
         `<div class="ice-door" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(s.door.r, 3)}"></div>`,
+        `<div class="ice-star-glow" data-star-glow="door" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(s.door.r, 2)}"></div>`,
+        `<div class="ice-star ice-star-door" data-star="door" data-phase="${phase}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(s.door.r, 3)}">` +
+          `<span class="ice-star-shadow"></span><span class="ice-star-sprite"></span></div>`,
       );
     }
     s.boxes.forEach((_, i) => {
@@ -473,13 +480,20 @@ export function startIceGame(opts: {
     }
   }
 
+  function starKey(at: Cell): string {
+    if (at.r === state.door.r && at.c === state.door.c) {
+      const onDoor = state.stars.some((s) => s.r === at.r && s.c === at.c);
+      if (!onDoor) return 'door';
+    }
+    return `${at.r}-${at.c}`;
+  }
+
   function hideStar(at: Cell): void {
-    const id = `${at.r}-${at.c}`;
-    board.querySelector(`[data-star="${id}"]`)?.classList.add('gone');
+    board.querySelector(`[data-star="${starKey(at)}"]`)?.classList.add('gone');
   }
 
   function glowEl(at: Cell): HTMLElement | null {
-    return board.querySelector(`[data-star-glow="${at.r}-${at.c}"]`) as HTMLElement | null;
+    return board.querySelector(`[data-star-glow="${starKey(at)}"]`) as HTMLElement | null;
   }
 
   function prefersReduceMotion(): boolean {
@@ -570,8 +584,8 @@ export function startIceGame(opts: {
     burstHudStar(hud);
   }
 
-  function collectStarFx(at: Cell, hudIndex: number): void {
-    const id = `${at.r}-${at.c}`;
+  function collectStarFx(at: Cell, hudIndex: number): Promise<void> {
+    const id = starKey(at);
     const star = board.querySelector(`[data-star="${id}"]`) as HTMLElement | null;
     const glow = glowEl(at);
     const glowScale0 = Number(glow?.dataset.scale) || 1;
@@ -581,7 +595,7 @@ export function startIceGame(opts: {
       hideStar(at);
       glow?.classList.add('gone');
       lightHudStar(hudIndex);
-      return;
+      return Promise.resolve();
     }
 
     const sprite = (star.querySelector('.ice-star-sprite') as HTMLElement | null) ?? star;
@@ -638,9 +652,16 @@ export function startIceGame(opts: {
 
     place(from.x, from.y, 1, 1, 0, 1, 0);
 
+    return new Promise((resolve) => {
+    const done = () => {
+      fly.remove();
+      lightHudStar(hudIndex);
+      resolve();
+    };
     const tick = (now: number) => {
       if (disposed || gen !== fxGen) {
         fly.remove();
+        resolve();
         return;
       }
       const elapsed = now - t0;
@@ -719,10 +740,10 @@ export function startIceGame(opts: {
         requestAnimationFrame(tick);
         return;
       }
-      fly.remove();
-      lightHudStar(hudIndex);
+      done();
     };
     requestAnimationFrame(tick);
+    });
   }
 
   function applyTuneCss(): void {
@@ -942,7 +963,7 @@ export function startIceGame(opts: {
       }
       const here = result.playerPath[i]!;
       if (picked[pi] && picked[pi]!.r === here.r && picked[pi]!.c === here.c) {
-        collectStarFx(picked[pi]!, state.collected + pi);
+        starFxWait.push(collectStarFx(picked[pi]!, state.collected + pi));
         pi += 1;
       }
       await sleep(stepMs);
@@ -972,6 +993,12 @@ export function startIceGame(opts: {
     placeTokens(state);
 
     if (state.won) {
+      starFxWait.push(collectStarFx(state.door, 2));
+      await Promise.all(starFxWait);
+      starFxWait = [];
+      if (disposed) return;
+      await sleep(prefersReduceMotion() ? 0 : 280);
+      if (disposed) return;
       const n = ratingStars(state);
       const last = levelIndex >= LEVELS.length - 1;
       overKicker.textContent = last ? '全部通关' : `第 ${LEVELS[levelIndex]!.id} 关`;

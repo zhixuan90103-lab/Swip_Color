@@ -26,6 +26,7 @@
 | 箱 | `src/assets/ui/crate.png` | `.ice-box` |
 | 星 | `src/assets/ui/star.png` | `.ice-star` |
 | 终点 | `src/assets/ui/door.png` | `.ice-door`（叠在冰格上，不替换冰砖） |
+| 终点星 | 同 `star.png` | 门格再叠一颗带投影/泛光的星（装饰，不计入收集） |
 | 角色整图（备份） | `src/assets/ui/you.png` | 局内**不用** |
 | 角色身体 | `src/assets/ui/you/body.png` | `.you-body` |
 | 眼白 | `src/assets/ui/you/eye.png` | `.you-eye` |
@@ -74,7 +75,7 @@ localStorage 键：`ice-board-tune-v10`。改默认时升版本，避免旧缓�
 |-------|------|
 | 0 | 冰砖 + Additive（整盘 z=0，在角色脚下；细则见 YOU-MOTION §6） |
 | 2 | 墙、星光 |
-| 3 | 星、终点 |
+| 3 | 星、终点垫、终点装饰星 |
 | 4 | 箱、角色（滑动时随行更新） |
 
 ---
