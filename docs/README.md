@@ -9,10 +9,11 @@
 | **LEVEL-KNOWLEDGE.md** | **关卡设计知识**（母本/变种、检查表、实装翻车） |
 | **LEVEL-TEMPLATES.md** | **现行十五关**（设计思路 + 朝向表，与 `levels.ts` 一致） |
 | **VISUAL.md** | **画面/资源真源**（贴图路径、托盘布局、调参、层级） |
+| **YOU-MOTION.md** | **角色 juice 真源**（待机、滑行、冲撞回弹摆正、眼睛） |
 | ENGINEERING.md | 底座打包/适配 |
 | MERGE.md | 双工程合并决策 |
 | HAPTICS.md | 震动接入（插件怎么接上） |
 | AUDIO.md | 音效接入/热路径（底座；事件名仍是旧合成遗留） |
 | ENTRYPOINTS.md | 入口链 |
 
-**规范优先级：** 玩法以 `ICE-PUZZLE.md` 为准；画面/贴图/调参以 `VISUAL.md` 为准；关卡出题检索以 `LEVEL-RESEARCH.md` 为准；出手默认 `FEEL2_DEFAULT`；音效管道以 `AUDIO.md` 为准；震动插件以 `HAPTICS.md` 为准。代码与文档冲突时改其中一侧，不要并列两套默认。
+**规范优先级：** 玩法以 `ICE-PUZZLE.md` 为准；画面/贴图/调参以 `VISUAL.md` 为准；角色运动以 `YOU-MOTION.md` 为准；关卡出题检索以 `LEVEL-RESEARCH.md` 为准；出手默认 `FEEL2_DEFAULT`；音效管道以 `AUDIO.md` 为准；震动插件以 `HAPTICS.md` 为准。代码与文档冲突时改其中一侧，不要并列两套默认。

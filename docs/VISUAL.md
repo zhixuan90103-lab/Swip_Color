@@ -2,7 +2,7 @@
 
 日期：**2026-09-08**。本文是**表现层真源**（贴图、托盘布局、调参）。玩法规则仍以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) 为准。
 
-实现：`src/game/boardLayout.ts`（槽位/托盘）· `iceGame.ts`（DOM、调参）· `src/style.css`。
+实现：`src/game/boardLayout.ts`（槽位/托盘）· `iceGame.ts`（DOM、调参）· `youMotion.ts`（角色运动，见 [YOU-MOTION.md](./YOU-MOTION.md)）· `src/style.css`。
 
 ---
 

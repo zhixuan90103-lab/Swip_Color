@@ -1,8 +1,8 @@
 # 冰面推箱 — 玩法规范
 
-日期：**2026-09-08**。本文是规则真源。代码与本文冲突时改其中一侧。画面/贴图见 [VISUAL.md](./VISUAL.md)，不要把表现写进规则。
+日期：**2026-09-08**。本文是规则真源。代码与本文冲突时改其中一侧。画面/贴图见 [VISUAL.md](./VISUAL.md)，角色运动见 [YOU-MOTION.md](./YOU-MOTION.md)，不要把表现写进规则。
 
-实现：`src/game/iceSim.ts`（一滑）· `iceGame.ts`（画面、十五关连续、调参）· `boardLayout.ts`（托盘/槽位）· `levels.ts`（十五关）· `swipeInput.ts` + `FEEL2_DEFAULT`（出手）。  
+实现：`src/game/iceSim.ts`（一滑）· `iceGame.ts`（画面、十五关连续、调参）· `youMotion.ts`（角色 juice）· `boardLayout.ts`（托盘/槽位）· `levels.ts`（十五关）· `swipeInput.ts` + `FEEL2_DEFAULT`（出手）。  
 出题知识：[LEVEL-KNOWLEDGE.md](./LEVEL-KNOWLEDGE.md)。现行十五关：[LEVEL-TEMPLATES.md](./LEVEL-TEMPLATES.md)。
 
 ---
