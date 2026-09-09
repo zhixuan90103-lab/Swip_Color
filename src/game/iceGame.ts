@@ -13,9 +13,10 @@ import { iceDirFromSwipe } from './dir';
 import { FEEL2_DEFAULT } from './feel';
 import { applyDir } from './iceSim';
 import { attachSwipeInput } from './swipeInput';
-import { ratingStars, type Cell, type Dir, type IceState } from './iceTypes';
+import { createBoxMotion } from './boxMotion';
+import { DIR_DELTA, ratingStars, type Cell, type Dir, type IceState } from './iceTypes';
 import { LEVELS } from './levels';
-import { createYouMotion, hitDurationMs, type LookTarget } from './youMotion';
+import { createYouMotion, hitAmpForCells, hitDurationMs, type LookTarget } from './youMotion';
 
 const TUNE_KEY = 'ice-board-tune-v10';
 const STEP_MS = FEEL2_DEFAULT.slideMs;
@@ -108,6 +109,8 @@ export function startIceGame(opts: {
 
   const tune = loadTune();
   let laid: BoardLayout = layoutBoard(tune, state.rows, state.cols);
+
+  const boxMotion = createBoxMotion();
 
   const youMotion = createYouMotion({
     getLookTargets: (): LookTarget[] => {
@@ -340,13 +343,14 @@ export function startIceGame(opts: {
       );
     }
     s.boxes.forEach((_, i) => {
-      parts.push(`<div class="ice-box" id="ice-box-${i}"></div>`);
+      parts.push(`<div class="ice-box" id="ice-box-${i}"><span class="box-rig"></span></div>`);
     });
     parts.push(`<div class="ice-you" id="ice-you"><span class="you-rig"><span class="you-body"></span><span class="you-eye"><span class="you-pupil"></span></span></span></div>`);
     board.style.width = `${laid.gridW}px`;
     board.style.height = `${laid.gridH}px`;
     board.style.left = `${laid.originX}px`;
     board.style.top = `${laid.originY}px`;
+    boxMotion.abort();
     board.innerHTML = parts.join('');
     youCellKey = '';
     bindStarIdle();
@@ -497,6 +501,7 @@ export function startIceGame(opts: {
     syncYouCellFromSprite();
     if (prefersReduceMotion()) return;
     youMotion.tick(now);
+    boxMotion.tick(now);
     const cycle = now / 1000 / STAR_IDLE_PERIOD;
     const glowBase = tune.glowOpacity / 100;
     for (const star of idleStars) {
@@ -993,13 +998,23 @@ export function startIceGame(opts: {
       await sleep(STEP_MS);
       if (disposed) {
         youMotion.abort();
+        boxMotion.abort();
         return;
       }
     }
 
     const cells = Math.max(0, steps - 1);
-    youMotion.startHit(dir, performance.now(), cells);
+    const now = performance.now();
+    youMotion.startHit(dir, now, cells);
     youMotion.endSlide();
+    const stop = result.playerPath[steps - 1]!;
+    const face = DIR_DELTA[dir];
+    const br = stop.r + face.r;
+    const bc = stop.c + face.c;
+    let boxI = result.state.boxes.findIndex((b) => b.r === br && b.c === bc);
+    if (boxI < 0 && result.pushedBox != null) boxI = result.pushedBox;
+    const hitBox = boxI >= 0 ? (board.querySelector(`#ice-box-${boxI}`) as HTMLElement | null) : null;
+    if (hitBox) boxMotion.startHit(hitBox, dir, now, hitAmpForCells(cells));
     await sleep(hitDurationMs(cells));
 
     state = result.state;
@@ -1040,6 +1055,7 @@ export function startIceGame(opts: {
     dispose() {
       disposed = true;
       youMotion.abort();
+      boxMotion.abort();
       if (idleRaf) cancelAnimationFrame(idleRaf);
       idleRaf = 0;
       ro.disconnect();

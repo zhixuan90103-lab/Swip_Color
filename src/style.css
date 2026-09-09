@@ -716,14 +716,29 @@ button:active {
 }
 
 .ice-box {
+  --box-hit-x: 0px;
+  --box-hit-y: 0px;
   width: var(--ice-box);
   height: var(--ice-box);
-  transform: translate(calc(-50% + var(--ice-box-x)), calc(-50% + var(--ice-box-y)));
-  background: url('./assets/ui/crate.png') center / contain no-repeat;
+  transform: translate(
+    calc(-50% + var(--ice-box-x) + var(--box-hit-x)),
+    calc(-50% + var(--ice-box-y) + var(--box-hit-y))
+  );
+  background: none;
   background-color: transparent;
   box-shadow: none;
-  filter: drop-shadow(0 3px 2px rgba(48, 62, 98, 0.5));
+  filter: none;
   z-index: 3;
+}
+
+.box-rig {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  background: url('./assets/ui/crate.png') center / contain no-repeat;
+  filter: drop-shadow(0 3px 2px rgba(48, 62, 98, 0.5));
+  will-change: transform;
 }
 
 .ice-you {

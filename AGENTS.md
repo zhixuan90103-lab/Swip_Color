@@ -30,7 +30,7 @@
 | 出题知识 | `docs/LEVEL-KNOWLEDGE.md` |
 | 十五关 | `docs/LEVEL-TEMPLATES.md` · `src/game/levels.ts` |
 | 画面/资源 | `docs/VISUAL.md` · `src/game/boardLayout.ts` · `src/assets/ui/` |
-| 角色运动 | `docs/YOU-MOTION.md` · `src/game/youMotion.ts` |
+| 角色运动 | `docs/YOU-MOTION.md` · `src/game/youMotion.ts` · `src/game/boxMotion.ts` |
 | 文档索引 | `docs/README.md` |
 
 ## DOM（勿拆）

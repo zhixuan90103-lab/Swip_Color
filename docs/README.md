@@ -9,7 +9,7 @@
 | **LEVEL-KNOWLEDGE.md** | **关卡设计知识**（母本/变种、检查表、实装翻车） |
 | **LEVEL-TEMPLATES.md** | **现行十五关**（设计思路 + 朝向表，与 `levels.ts` 一致） |
 | **VISUAL.md** | **画面/资源真源**（贴图路径、托盘布局、调参、层级） |
-| **YOU-MOTION.md** | **角色 juice 真源**（待机、滑行、冲撞回弹摆正、眼睛） |
+| **YOU-MOTION.md** | **角色 / 箱子 juice 真源**（待机、滑行、冲撞回弹摆正、眼睛、撞箱） |
 | ENGINEERING.md | 底座打包/适配 |
 | MERGE.md | 双工程合并决策 |
 | HAPTICS.md | 震动接入（插件怎么接上） |
