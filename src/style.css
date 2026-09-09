@@ -708,9 +708,14 @@ button:active {
 }
 
 .ice-you {
+  --you-hit-x: 0px;
+  --you-hit-y: 0px;
   width: var(--ice-you);
   height: var(--ice-you);
-  transform: translate(calc(-50% + var(--ice-you-x)), calc(-50% + var(--ice-you-y)));
+  transform: translate(
+    calc(-50% + var(--ice-you-x) + var(--you-hit-x)),
+    calc(-50% + var(--ice-you-y) + var(--you-hit-y))
+  );
   background: none;
   background-color: transparent;
   box-shadow: none;

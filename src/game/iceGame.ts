@@ -39,6 +39,16 @@ const YOU_STRETCH_MAX = 0.3;
 const YOU_PERIOD_MIN = 1.55;
 const YOU_PERIOD_MAX = 1.95;
 const YOU_BLINK_DUR = 0.18;
+const YOU_SLIDE_LEAN = 14;
+const YOU_SLIDE_STRETCH = 0.22;
+const YOU_SLIDE_EYE = 0.16;
+const YOU_HIT_OVERLAP = 18;
+const YOU_HIT_IN_MS = 55;
+const YOU_HIT_BACK_MS = 250;
+const YOU_HIT_SQUASH = 0.34;
+const YOU_HIT_STRETCH = 0.28;
+const YOU_HIT_LEAN = 22;
+const YOU_HIT_LEAN_UD = 8;
 
 function loadTune(): BoardTune {
   try {
@@ -145,6 +155,18 @@ export function startIceGame(opts: {
   let youLeanVel = 0;
   let youSy = 1;
   let youSyVel = 0;
+  let youSlideDir: Dir | null = null;
+  let youSlideRot = 0;
+  let youSlideRotVel = 0;
+  let youSlideStr = 0;
+  let youSlideStrVel = 0;
+  let youSlideEyeStart = 0;
+  let youSlideLooked = false;
+  let youSlideLookDir: Dir | null = null;
+  let youHitOn = false;
+  let youHitDir: Dir | null = null;
+  let youHitT0 = 0;
+  let youHitFromRot = 0;
 
   function mix(min: number, max: number): number {
     return min + Math.random() * (max - min);
@@ -165,6 +187,50 @@ export function startIceGame(opts: {
     if (half < 0.54) return sign;
     if (half < 0.88) return sign * (1 - easeInOutCubic((half - 0.54) / 0.34));
     return 0;
+  }
+
+  function lookTowardDir(dir: Dir, now: number): void {
+    youLookFromX = youLookX;
+    youLookFromY = youLookY;
+    youLookStart = now;
+    youLookKey = `dir-${dir}`;
+    const m = 7;
+    if (dir === 'left') {
+      youLookTX = -m;
+      youLookTY = 0;
+    } else if (dir === 'right') {
+      youLookTX = m;
+      youLookTY = 0;
+    } else if (dir === 'up') {
+      youLookTX = 0;
+      youLookTY = -m;
+    } else {
+      youLookTX = 0;
+      youLookTY = m;
+    }
+  }
+
+  function dirStep(dir: Dir): { x: number; y: number } {
+    if (dir === 'left') return { x: -1, y: 0 };
+    if (dir === 'right') return { x: 1, y: 0 };
+    if (dir === 'up') return { x: 0, y: -1 };
+    return { x: 0, y: 1 };
+  }
+
+  function startYouHit(dir: Dir, now: number): void {
+    youHitOn = true;
+    youHitDir = dir;
+    youHitT0 = now;
+    youHitFromRot = youSlideRot;
+  }
+
+  function startSlideYou(dir: Dir, now: number): void {
+    youSlideDir = dir;
+    youSlideLookDir = dir;
+    youSlideEyeStart = now;
+    youSlideLooked = false;
+    youBlinkStart = 0;
+    youDoubleBlink = false;
   }
 
   function lookOffsetTo(cell: Cell): { x: number; y: number } {
@@ -520,50 +586,150 @@ export function startIceGame(opts: {
       if (youIdlePrev === 0) youIdlePrev = now;
       const dt = Math.min(0.05, (now - youIdlePrev) / 1000);
       youIdlePrev = now;
-      youPhase += dt * youRate;
-      if (youPhase >= 1) {
-        youPhase -= 1;
-        rollYouIdle();
-      }
-      const fade = 1 - Math.exp(-dt * 2.4);
-      youRate += (youRateT - youRate) * fade;
-      youLeanAmp += (youLeanAmpT - youLeanAmp) * fade;
-      youSquashAmp += (youSquashAmpT - youSquashAmp) * fade;
-      youStretchAmp += (youStretchAmpT - youStretchAmp) * fade;
-      const wave = youLeanWave(youPhase);
-      const targetLean = wave * youLeanAmp;
-      youLeanVel += (targetLean - youLean) * 20 * dt;
-      youLeanVel *= Math.exp(-6.8 * dt);
-      youLean += youLeanVel * dt;
-      const side = Math.min(1, Math.abs(wave));
-      let targetSy = 1 - youSquashAmp * (1 - side) + youStretchAmp * side;
-      if (side < 0.12) {
-        targetSy += 0.018 * Math.sin(now * 0.011);
-      }
-      youSyVel += (targetSy - youSy) * 16 * dt;
-      youSyVel *= Math.exp(-5.8 * dt);
-      youSy += youSyVel * dt;
-      const sx = 1 / youSy;
-      youRig.style.transform = `rotate(${youLean.toFixed(2)}deg) scale(${sx.toFixed(4)}, ${youSy.toFixed(4)})`;
-      if (youEye) {
-        if (youNextBlinkAt === 0) youNextBlinkAt = now + mix(2.3, 5.5) * 1000;
-        if (youBlinkStart === 0 && now >= youNextBlinkAt) {
-          youBlinkStart = now;
-          if (!youDoubleBlink) {
-            pickYouLook(now);
-            youDoubleBlink = Math.random() < 0.22;
-          } else {
-            youDoubleBlink = false;
-          }
+      if (!youSlideDir && !youHitOn) {
+        youPhase += dt * youRate;
+        if (youPhase >= 1) {
+          youPhase -= 1;
+          rollYouIdle();
         }
+        const fade = 1 - Math.exp(-dt * 2.4);
+        youRate += (youRateT - youRate) * fade;
+        youLeanAmp += (youLeanAmpT - youLeanAmp) * fade;
+        youSquashAmp += (youSquashAmpT - youSquashAmp) * fade;
+        youStretchAmp += (youStretchAmpT - youStretchAmp) * fade;
+        const wave = youLeanWave(youPhase);
+        const targetLean = wave * youLeanAmp;
+        youLeanVel += (targetLean - youLean) * 20 * dt;
+        youLeanVel *= Math.exp(-6.8 * dt);
+        youLean += youLeanVel * dt;
+        const side = Math.min(1, Math.abs(wave));
+        let targetSy = 1 - youSquashAmp * (1 - side) + youStretchAmp * side;
+        if (side < 0.12) {
+          targetSy += 0.018 * Math.sin(now * 0.011);
+        }
+        youSyVel += (targetSy - youSy) * 16 * dt;
+        youSyVel *= Math.exp(-5.8 * dt);
+        youSy += youSyVel * dt;
+      } else {
+        youLeanVel += (0 - youLean) * 48 * dt;
+        youLeanVel *= Math.exp(-10 * dt);
+        youLean += youLeanVel * dt;
+        youSyVel += (1 - youSy) * 48 * dt;
+        youSyVel *= Math.exp(-10 * dt);
+        youSy += youSyVel * dt;
+      }
+      let tRot = 0;
+      let tStr = 0;
+      if (youSlideDir === 'left') tRot = -YOU_SLIDE_LEAN;
+      else if (youSlideDir === 'right') tRot = YOU_SLIDE_LEAN;
+      if (youSlideDir) tStr = YOU_SLIDE_STRETCH;
+      if (!youHitOn) {
+        const slideK = youSlideDir ? 52 : 20;
+        const slideD = youSlideDir ? 10 : 8;
+        youSlideRotVel += (tRot - youSlideRot) * slideK * dt;
+        youSlideRotVel *= Math.exp(-slideD * dt);
+        youSlideRot += youSlideRotVel * dt;
+        youSlideStrVel += (tStr - youSlideStr) * slideK * dt;
+        youSlideStrVel *= Math.exp(-slideD * dt);
+        youSlideStr += youSlideStrVel * dt;
+      }
+      let hitSx = 1;
+      let hitSy = 1;
+      let hitX = 0;
+      let hitY = 0;
+      let hitRot = youSlideRot;
+      if (youHitOn && youHitDir) {
+        const elapsed = now - youHitT0;
+        const d = dirStep(youHitDir);
+        let bounce = 0;
+        if (elapsed < YOU_HIT_IN_MS) {
+          bounce = easeOutCubic(elapsed / YOU_HIT_IN_MS);
+        } else if (elapsed < YOU_HIT_IN_MS + YOU_HIT_BACK_MS) {
+          const u = (elapsed - YOU_HIT_IN_MS) / YOU_HIT_BACK_MS;
+          bounce = Math.exp(-3.8 * u) * Math.cos(u * Math.PI * 2.05);
+        } else {
+          youHitOn = false;
+          youHitDir = null;
+          youSlideRot = 0;
+          youSlideRotVel = 0;
+          youSlideStr = 0;
+          youSlideStrVel = 0;
+          youPhase = 0;
+          youLean = 0;
+          youLeanVel = 0;
+          youSy = 1;
+          youSyVel = 0;
+          bounce = 0;
+        }
+        hitX = d.x * YOU_HIT_OVERLAP * bounce;
+        hitY = d.y * YOU_HIT_OVERLAP * bounce;
+        const into = Math.max(0, bounce);
+        const away = Math.max(0, -bounce);
+        const jig = youHitOn
+          ? Math.exp(-3.6 * Math.max(0, (elapsed - YOU_HIT_IN_MS) / YOU_HIT_BACK_MS)) *
+            0.12 *
+            Math.sin(Math.max(0, elapsed - YOU_HIT_IN_MS) * 0.048)
+          : 0;
+        const axis = 1 - YOU_HIT_SQUASH * into + YOU_HIT_STRETCH * away + jig;
+        if (d.x !== 0) {
+          hitSx = axis;
+          hitSy = 1 + 0.08 * into - 0.06 * away;
+        } else {
+          hitSy = axis;
+          hitSx = 1 + 0.08 * into - 0.06 * away;
+        }
+        const sign = d.x !== 0 ? (youHitFromRot < 0 || d.x < 0 ? -1 : 1) : 1;
+        const leanAmp = d.x !== 0 ? YOU_HIT_LEAN * (d.x < 0 ? -1 : 1) : YOU_HIT_LEAN_UD * sign;
+        hitRot = leanAmp * bounce;
+        youSlideRot = hitRot;
+      }
+      const youEl = board.querySelector('#ice-you') as HTMLElement | null;
+      youEl?.style.setProperty('--you-hit-x', `${hitX.toFixed(2)}px`);
+      youEl?.style.setProperty('--you-hit-y', `${hitY.toFixed(2)}px`);
+      const baseSy = youHitOn ? 1 : youSy * (1 + youSlideStr);
+      const sy = baseSy * hitSy;
+      const sx = (youHitOn ? 1 / baseSy : 1 / (youSy * (1 + youSlideStr))) * hitSx;
+      const rot = youLean + (youHitOn ? hitRot : youSlideRot);
+      youRig.style.transform = `rotate(${rot.toFixed(2)}deg) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+      if (youEye) {
         let lid = 1;
-        if (youBlinkStart > 0) {
-          const t = (now - youBlinkStart) / (YOU_BLINK_DUR * 1000);
+        if (youSlideEyeStart > 0) {
+          const t = (now - youSlideEyeStart) / (YOU_SLIDE_EYE * 1000);
           if (t >= 1) {
-            youBlinkStart = 0;
-            youNextBlinkAt = youDoubleBlink ? now + 90 : now + mix(2.3, 5.5) * 1000;
+            if (!youSlideLooked && youSlideLookDir) {
+              lookTowardDir(youSlideLookDir, now);
+              youSlideLooked = true;
+            }
+            youSlideEyeStart = 0;
+            lid = 1;
+          } else if (t < 0.4) {
+            lid = 1 - 0.28 * easeInCubic(t / 0.4);
           } else {
-            lid = blinkLid(t);
+            if (!youSlideLooked && youSlideLookDir) {
+              lookTowardDir(youSlideLookDir, now);
+              youSlideLooked = true;
+            }
+            lid = 0.72 + 0.28 * easeOutCubic((t - 0.4) / 0.6);
+          }
+        } else if (!youSlideDir) {
+          if (youNextBlinkAt === 0) youNextBlinkAt = now + mix(2.3, 5.5) * 1000;
+          if (youBlinkStart === 0 && now >= youNextBlinkAt) {
+            youBlinkStart = now;
+            if (!youDoubleBlink) {
+              pickYouLook(now);
+              youDoubleBlink = Math.random() < 0.22;
+            } else {
+              youDoubleBlink = false;
+            }
+          }
+          if (youBlinkStart > 0) {
+            const t = (now - youBlinkStart) / (YOU_BLINK_DUR * 1000);
+            if (t >= 1) {
+              youBlinkStart = 0;
+              youNextBlinkAt = youDoubleBlink ? now + 90 : now + mix(2.3, 5.5) * 1000;
+            } else {
+              lid = blinkLid(t);
+            }
           }
         }
         youEye.style.transform = `scaleY(${lid.toFixed(3)})`;
@@ -1068,6 +1234,7 @@ export function startIceGame(opts: {
       return;
     }
     busy = true;
+    startSlideYou(dir, performance.now());
     const you = board.querySelector('#ice-you') as HTMLElement;
     const boxEl =
       result.pushedBox != null
@@ -1088,8 +1255,16 @@ export function startIceGame(opts: {
         pi += 1;
       }
       await sleep(STEP_MS);
-      if (disposed) return;
+      if (disposed) {
+        youSlideDir = null;
+        youHitOn = false;
+        return;
+      }
     }
+
+    startYouHit(dir, performance.now());
+    youSlideDir = null;
+    await sleep(YOU_HIT_IN_MS + YOU_HIT_BACK_MS);
 
     state = result.state;
     placeTokens(state);
@@ -1105,6 +1280,8 @@ export function startIceGame(opts: {
     } else {
       void haptics.impact(result.kind === 'push' ? 'medium' : 'light');
     }
+    youSlideDir = null;
+    youNextBlinkAt = performance.now() + mix(2.3, 5.5) * 1000;
     busy = false;
     swipe.onMoveSettled();
   }
