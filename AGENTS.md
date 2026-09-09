@@ -31,6 +31,8 @@
 | 十五关 | `docs/LEVEL-TEMPLATES.md` · `src/game/levels.ts` |
 | 画面/资源 | `docs/VISUAL.md` · `src/game/boardLayout.ts` · `src/assets/ui/` |
 | 运动 juice | `docs/YOU-MOTION.md` · `src/game/youMotion.ts` · `boxMotion.ts` · `cellAdd.ts` · `starPickup.ts` |
+| 对象池 | `src/game/objectPool.ts`（`.is-pooled` 停车，不用 `hidden`） |
+| 棋盘层级 | `src/game/boardStack.ts`（`--row` + `--z-layer`，不靠 DOM 顺序） |
 | 文档索引 | `docs/README.md` |
 
 ## DOM（勿拆）

@@ -10,9 +10,11 @@ Juice **不改模拟**：格点先到位，再播表现。`prefers-reduced-motio
 |------|------|
 | `src/game/youMotion.ts` | 角色待机、滑行、砸入回弹、眼睛 |
 | `src/game/boxMotion.ts` | 撞箱（硬木箱） |
-| `src/game/cellAdd.ts` | 脚下 Additive 轨迹 |
+| `src/game/cellAdd.ts` | 格子占用提亮 + 走过淡出 |
 | `src/game/starPickup.ts` | 领星 / 星待机常量 |
 | `src/game/iceGame.ts` | 何时开滑、撞停、吃星、结算 |
+| `src/game/objectPool.ts` | 复用；闲置 class `is-pooled`，禁止 `hidden` |
+| `src/game/boardStack.ts` | `--row` / `--z-layer`；门 3 星 4 角色 5 |
 
 改手感：改对应 ts **导出常量**，并改本文同一行。禁止在 `iceGame.ts` 再堆一套默认。
 
@@ -24,10 +26,12 @@ Juice **不改模拟**：格点先到位，再播表现。`prefers-reduced-motio
 |----|------|--------|
 | 格点 | `#ice-you` `left/top` | 空滑 **50ms/格**；推箱 **90ms/格**，linear |
 | 冲撞 | `--you-hit-x/y` | 叠入 / 回弹，不改格点 |
-| 身体 | `.you-rig` | 左右脚底 `50% 100%`；上下砸入 Y 缩放改 **中心** |
+| 投影 | `.you-shadow` | 脚底椭圆暗斑（随人走，不复制身体图） |
+| 身体 | `.you-rig` | 左右脚底 `50% 100%`；上下砸入 Y 缩放改 **中心**。**无 filter** |
 | 眼 | `.you-eye` / `.you-pupil` | 睑 `scaleY`；瞳孔 `translate` |
 
-禁止绕肚子转、禁止整图抖动当摆正。
+禁止绕肚子转、禁止整图抖动当摆正。  
+不要把 `body.png` 再铺一层当投影：静止剪影 + 晃动身体 = 两个角色。`drop-shadow` 也不得画在 `.you-rig` 上（滑动时 WKWebView 会丢掉滤镜）。
 
 ---
 
@@ -96,14 +100,16 @@ Juice **不改模拟**：格点先到位，再播表现。`prefers-reduced-motio
 
 ---
 
-## 6. 格子 Additive
+## 6. 接地：脚影 + 格子提亮
 
-脚下光，**不得盖过角色**。冰砖整盘 **z=0**。
+两套各干一件事，**不准再用 mix-blend**（iOS 会印成深色方块）。
 
-- 平时 0；角色所在格 **0.4**（`plus-lighter`）
-- 按**当前滑步插值**亮最近格，不要在目标格提前亮
-- 空滑 50ms、推箱 90ms；淡出同比：50ms→**450ms**，90ms→**810ms**
-- 离开的格先打满再淡，形成轨迹
+| 层 | 节点 | 做什么 |
+|----|------|--------|
+| 脚影 | `.you-shadow` | 钉在角色脚底的椭圆暗斑，随 `#ice-you` 连续滑 |
+| 占用提亮 | `.ice-cell-add` | 白/冰色径向光，**只加亮**。当前格淡入到 0.35；离开后按步时淡出（50ms 步 → 450ms，90ms 步 → 810ms）形成轨迹 |
+
+进入新格不要瞬间打满再切 transition——淡入淡出同一条 opacity。禁止 `plus-lighter` / `multiply`。
 
 ---
 
@@ -130,7 +136,7 @@ HUD 三槽。评价公式仍是规则里的 **1 + 吃到的星**，见 ICE-PUZZL
 | `YOU_HIT_IN_MS` / `FAST` | 70 / 55 |
 | `YOU_HIT_BACK_MS` / `FAST` | 300 / 255 |
 | `YOU_HIT_AMP_MIN` / 满格 | 0.45 / 4 格 |
-| `CELL_ADD_OP` / `CELL_ADD_FADE_MS` | 0.4 / 450 |
+| `CELL_ADD_OP` / `CELL_ADD_FADE_MS` | 0.35 / 450 |
 | `STAR_RISE_Y` / `STAR_RISE_MS` | 100px / 110ms |
 | `STAR_CROUCH_MS` / `DROP` / `TO_HUD` | 260ms / 50px / 280ms |
 | `BOX_HIT_IN_DIST` / hop / lean | 4px / 4px / 7° |

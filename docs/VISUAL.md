@@ -69,14 +69,21 @@ localStorage 键：`ice-board-tune-v10`。改默认时升版本，避免旧缓�
 
 ## 4. 层级
 
-越靠下的行越高：`z = (row + 1) * 10 + layer`。
+常量：`src/game/boardStack.ts` 的 `Z_LAYER`。棋子设 `--row` / `--z-layer`，CSS：
 
-| layer | 物件 |
-|-------|------|
-| 0 | 冰砖 + Additive（整盘 z=0，在角色脚下；细则见 YOU-MOTION §6） |
+`z-index: calc((var(--row) + 1) * 10 + var(--z-layer))`
+
+**不要靠 DOM 顺序叠层**（对象池回收后顺序不稳定）。冰砖整盘 `z-index: 0`。
+
+| `--z-layer` | 物件 |
+|-------------|------|
+| 0 | 冰砖 + 占用提亮（`.ice-cell-add`，径向加亮，无 mix-blend） |
 | 2 | 墙、星光 |
-| 3 | 星、终点垫、终点装饰星 |
-| 4 | 箱、角色（滑动时随行更新） |
+| 3 | 终点垫 |
+| 4 | 星（含终点装饰星，必须盖在垫上） |
+| 5 | 箱、角色 |
+
+闲置棋子 class **`is-pooled`**（`display: none !important`）。禁止用 `hidden` 属性停显示：作者样式 `display: flex` 会盖掉 UA 的 `[hidden]`，回收的箱子会钉在棋盘左上角。
 
 ---
 

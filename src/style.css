@@ -538,8 +538,7 @@ button:active {
 .ice-cell.is-ice-b {
   border-radius: 0;
   background: none;
-  isolation: isolate;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .ice-cell-tile,
@@ -547,29 +546,33 @@ button:active {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100% 100%;
-}
-
-.ice-cell.is-ice-a .ice-cell-tile,
-.ice-cell.is-ice-a .ice-cell-add {
-  background-image: url('./assets/ui/ice-a.png');
-}
-
-.ice-cell.is-ice-b .ice-cell-tile,
-.ice-cell.is-ice-b .ice-cell-add {
-  background-image: url('./assets/ui/ice-b.png');
 }
 
 .ice-cell-tile {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
   opacity: var(--ice-tile-opacity);
 }
 
+/* Highlight wash only. No mix-blend — iOS stamps it as a dark square. */
 .ice-cell-add {
-  z-index: 0;
+  z-index: 1;
   opacity: 0;
-  mix-blend-mode: plus-lighter;
+  background: radial-gradient(
+    circle at 50% 48%,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(210, 235, 255, 0.22) 42%,
+    rgba(210, 235, 255, 0) 74%
+  );
+}
+
+.ice-cell.is-ice-a .ice-cell-tile {
+  background-image: url('./assets/ui/ice-a.png');
+}
+
+.ice-cell.is-ice-b .ice-cell-tile {
+  background-image: url('./assets/ui/ice-b.png');
 }
 
 .ice-cell.is-wall {
@@ -595,6 +598,19 @@ button:active {
   pointer-events: none;
 }
 
+/* Stacking: z = (row+1)*10 + --z-layer. Parking: .is-pooled, never [hidden]. */
+.ice-piece {
+  z-index: calc((var(--row, 0) + 1) * 10 + var(--z-layer, 0));
+}
+
+.ice-cell:not(.is-wall) {
+  z-index: 0;
+}
+
+.ice-piece.is-pooled {
+  display: none !important;
+}
+
 .ice-star,
 .ice-box,
 .ice-you {
@@ -605,7 +621,6 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
   transform: translate(-50%, -50%);
   transform-origin: center center;
   transition: left 50ms linear, top 50ms linear;
@@ -729,7 +744,6 @@ button:active {
   background-color: transparent;
   box-shadow: none;
   filter: none;
-  z-index: 3;
 }
 
 .box-rig {
@@ -747,6 +761,7 @@ button:active {
   --you-hit-y: 0px;
   width: var(--ice-you);
   height: var(--ice-you);
+  overflow: visible;
   transform: translate(
     calc(-50% + var(--ice-you-x) + var(--you-hit-x)),
     calc(-50% + var(--ice-you-y) + var(--you-hit-y))
@@ -755,17 +770,32 @@ button:active {
   background-color: transparent;
   box-shadow: none;
   filter: none;
-  z-index: 4;
+}
+
+/* Ground blob under the feet. Do not copy body.png here — a still silhouette
+   plus a leaning rig reads as two characters. */
+.you-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 0;
+  width: 62%;
+  height: 18%;
+  pointer-events: none;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(40, 48, 72, 0.38) 0%, rgba(40, 48, 72, 0) 72%);
 }
 
 .you-rig {
   position: relative;
+  z-index: 1;
   display: block;
   height: 100%;
   aspect-ratio: 163 / 216;
   transform-origin: 50% 100%;
   will-change: transform;
-  filter: drop-shadow(0 3px 2px rgba(48, 62, 98, 0.5));
+  filter: none;
 }
 
 .you-body,

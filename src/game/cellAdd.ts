@@ -1,7 +1,8 @@
 import { tokenPos, type BoardLayout } from './boardLayout';
 import type { Cell } from './iceTypes';
 
-export const CELL_ADD_OP = 0.4;
+/** Occupancy wash on ice. Highlight only — never mix-blend (iOS stamps it dark). */
+export const CELL_ADD_OP = 0.35;
 export const CELL_ADD_FADE_MS = 450;
 
 export function cellAddFadeMs(stepMs: number, baseStepMs: number): number {
@@ -30,23 +31,22 @@ export function createCellAdd(opts: {
   let slideTrack: { from: Cell; to: Cell; t0: number; ms: number } | null = null;
 
   function addEl(c: Cell): HTMLElement | null {
-    return opts.getBoard().querySelector(`[data-cell="${c.r}-${c.c}"] .ice-cell-add`);
+    return opts.getBoard().querySelector(`[data-cell="${c.r}-${c.c}"]:not(.is-pooled) .ice-cell-add`);
   }
 
-  function light(c: Cell, fade: boolean): void {
+  function light(c: Cell, on: boolean): void {
     const add = addEl(c);
     if (!add) return;
-    add.style.transition = 'none';
-    add.style.opacity = String(CELL_ADD_OP);
-    void add.offsetWidth;
     if (opts.prefersReduce()) {
-      add.style.opacity = fade ? '0' : String(CELL_ADD_OP);
+      add.style.transition = 'none';
+      add.style.opacity = on ? String(CELL_ADD_OP) : '0';
       return;
     }
-    if (fade) {
-      add.style.transition = `opacity ${cellAddFadeMs(stepMs, opts.getBaseStepMs())}ms ease-out`;
-      add.style.opacity = '0';
-    }
+    const ms = on
+      ? Math.min(120, cellAddFadeMs(stepMs, opts.getBaseStepMs()) * 0.25)
+      : cellAddFadeMs(stepMs, opts.getBaseStepMs());
+    add.style.transition = `opacity ${ms}ms ${on ? 'ease-out' : 'ease-out'}`;
+    add.style.opacity = on ? String(CELL_ADD_OP) : '0';
   }
 
   function hold(c: Cell): void {
@@ -54,16 +54,21 @@ export function createCellAdd(opts: {
     if (key === youCellKey) return;
     if (youCellKey) {
       const prev = youCellKey.split('-').map(Number);
-      light({ r: prev[0]!, c: prev[1]! }, true);
+      light({ r: prev[0]!, c: prev[1]! }, false);
     }
     youCellKey = key;
-    light(c, false);
+    light(c, true);
   }
 
   return {
     reset() {
       youCellKey = '';
       slideTrack = null;
+      opts.getBoard().querySelectorAll('.ice-cell-add').forEach((el) => {
+        const n = el as HTMLElement;
+        n.style.transition = 'none';
+        n.style.opacity = '0';
+      });
     },
     setStepMs(ms) {
       stepMs = ms;
@@ -96,7 +101,7 @@ export function createCellAdd(opts: {
       }
       let best: Cell | null = null;
       let bestD = Infinity;
-      board.querySelectorAll('.ice-cell[data-cell]').forEach((el) => {
+      board.querySelectorAll('.ice-cell[data-cell]:not(.is-pooled)').forEach((el) => {
         const id = el.getAttribute('data-cell');
         if (!id) return;
         const parts = id.split('-');

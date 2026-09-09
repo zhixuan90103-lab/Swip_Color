@@ -15,6 +15,8 @@ import { applyDir } from './iceSim';
 import { attachSwipeInput } from './swipeInput';
 import { createBoxMotion } from './boxMotion';
 import { createCellAdd } from './cellAdd';
+import { Z_LAYER, placeBoardItem } from './boardStack';
+import { createDomPool } from './objectPool';
 import { DIR_DELTA, ratingStars, type Cell, type Dir, type IceState } from './iceTypes';
 import { LEVELS } from './levels';
 import {
@@ -305,10 +307,116 @@ export function startIceGame(opts: {
   opts.uiRoot.replaceChildren(root);
 
   const board = root.querySelector('#ice-board') as HTMLElement;
+
+  const makeEl = (className: string, html?: string): HTMLElement => {
+    const n = document.createElement('div');
+    n.className = `ice-piece ${className}`;
+    if (html) n.innerHTML = html;
+    return n;
+  };
+
+  const cellPool = createDomPool({
+    parent: board,
+    create: () => makeEl('ice-cell', '<span class="ice-cell-tile"></span><span class="ice-cell-add"></span>'),
+    reset(n) {
+      n.className = 'ice-piece ice-cell';
+      n.removeAttribute('data-cell');
+      n.removeAttribute('style');
+      const add = n.querySelector('.ice-cell-add') as HTMLElement | null;
+      if (add) {
+        add.style.transition = 'none';
+        add.style.opacity = '0';
+      }
+    },
+  });
+  const wallPool = createDomPool({
+    parent: board,
+    create: () => makeEl('ice-cell is-wall'),
+    reset(n) {
+      n.className = 'ice-piece ice-cell is-wall';
+      n.removeAttribute('style');
+    },
+  });
+  const glowPool = createDomPool({
+    parent: board,
+    create: () => makeEl('ice-star-glow'),
+    reset(n) {
+      n.className = 'ice-piece ice-star-glow';
+      n.removeAttribute('data-star-glow');
+      n.removeAttribute('style');
+      delete n.dataset.scale;
+    },
+  });
+  const starPool = createDomPool({
+    parent: board,
+    create: () => makeEl('ice-star', '<span class="ice-star-shadow"></span><span class="ice-star-sprite"></span>'),
+    reset(n) {
+      n.className = 'ice-piece ice-star';
+      n.removeAttribute('data-star');
+      n.removeAttribute('data-phase');
+      n.removeAttribute('style');
+      const sprite = n.querySelector('.ice-star-sprite') as HTMLElement | null;
+      if (sprite) sprite.style.transform = '';
+    },
+  });
+  const doorPool = createDomPool({
+    parent: board,
+    create: () => makeEl('ice-door'),
+    reset(n) {
+      n.className = 'ice-piece ice-door';
+      n.removeAttribute('style');
+    },
+  });
+  const boxPool = createDomPool({
+    parent: board,
+    create: () => makeEl('ice-box', '<span class="box-rig"></span>'),
+    reset(n) {
+      n.removeAttribute('id');
+      n.removeAttribute('style');
+      n.style.removeProperty('--box-hit-x');
+      n.style.removeProperty('--box-hit-y');
+    },
+  });
+  const flyPool = createDomPool({
+    parent: opts.stage,
+    create: () => {
+      const fly = makeEl('ice-star-fly');
+      const base = document.createElement('span');
+      base.className = 'ice-star-fly-base';
+      base.style.backgroundImage = `url(${starArt})`;
+      const add = document.createElement('span');
+      add.className = 'ice-star-fly-add';
+      add.style.backgroundImage = `url(${starArt})`;
+      fly.append(base, add);
+      return fly;
+    },
+    reset(n) {
+      n.className = 'ice-piece ice-star-fly';
+      n.removeAttribute('style');
+      const add = n.querySelector('.ice-star-fly-add') as HTMLElement | null;
+      if (add) add.style.opacity = '0';
+    },
+  });
+  const burstPool = createDomPool({
+    parent: opts.stage,
+    create: () => makeEl('ice-star-burst'),
+    reset(n) {
+      n.className = 'ice-piece ice-star-burst';
+      n.removeAttribute('style');
+    },
+  });
+
+  const youEl = makeEl(
+    'ice-you',
+    '<span class="you-shadow"></span><span class="you-rig"><span class="you-body"></span><span class="you-eye"><span class="you-pupil"></span></span></span>',
+  );
+  youEl.id = 'ice-you';
+  board.appendChild(youEl);
+
   const cellAdd = createCellAdd({
     getBoard: () => board,
     getLaid: () => laid,
-    getYou: () => board.querySelector('#ice-you'),
+    getYou: () => youEl,
     getBaseStepMs: () => STEP_MS,
     prefersReduce: () => prefersReduceMotion(),
   });
@@ -320,65 +428,67 @@ export function startIceGame(opts: {
   const overKicker = root.querySelector('#ice-over-kicker') as HTMLElement;
   const nextBtn = root.querySelector('#ice-next') as HTMLButtonElement;
 
+  function pin(el: HTMLElement, c: Cell, layer: (typeof Z_LAYER)[keyof typeof Z_LAYER]): void {
+    const p = tokenPos(laid, c);
+    placeBoardItem(el, p.x, p.y, c.r, layer);
+  }
+
   function paintStatic(s: IceState): void {
     fxGen += 1;
     starFxWait = [];
-    opts.stage.querySelectorAll('.ice-star-fly, .ice-star-burst').forEach((el) => el.remove());
+    flyPool.releaseAll();
+    burstPool.releaseAll();
+    cellPool.releaseAll();
+    wallPool.releaseAll();
+    glowPool.releaseAll();
+    starPool.releaseAll();
+    doorPool.releaseAll();
+    boxPool.releaseAll();
     laid = layoutBoard(tune, s.rows, s.cols);
     applyTuneCss();
-    const parts: string[] = [];
     for (const cell of s.open) {
-      const shade = (cell.r + cell.c) % 2 === 0 ? 'is-ice-a' : 'is-ice-b';
-      const p = tokenPos(laid, cell);
-      parts.push(
-        `<div class="ice-cell ${shade}" data-cell="${cell.r}-${cell.c}" style="left:${p.x}px;top:${p.y}px;z-index:0">` +
-          `<span class="ice-cell-tile"></span><span class="ice-cell-add"></span></div>`,
-      );
+      const n = cellPool.acquire();
+      n.className = `ice-piece ice-cell ${(cell.r + cell.c) % 2 === 0 ? 'is-ice-a' : 'is-ice-b'}`;
+      n.setAttribute('data-cell', `${cell.r}-${cell.c}`);
+      pin(n, cell, Z_LAYER.ice);
     }
     for (const cell of s.walls) {
-      const p = tokenPos(laid, cell);
-      parts.push(
-        `<div class="ice-cell is-wall" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(cell.r, 2)}"></div>`,
-      );
+      pin(wallPool.acquire(), cell, Z_LAYER.wall);
     }
     for (const t of s.stars) {
-      const p = tokenPos(laid, t);
-      const phase = ((t.r * 3 + t.c) % 7) / 7;
       const id = `${t.r}-${t.c}`;
-      parts.push(
-        `<div class="ice-star-glow" data-star-glow="${id}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(t.r, 2)}"></div>`,
-        `<div class="ice-star" data-star="${id}" data-phase="${phase}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(t.r, 3)}">` +
-          `<span class="ice-star-shadow"></span><span class="ice-star-sprite"></span></div>`,
-      );
+      const glow = glowPool.acquire();
+      glow.setAttribute('data-star-glow', id);
+      pin(glow, t, Z_LAYER.glow);
+      const star = starPool.acquire();
+      star.setAttribute('data-star', id);
+      star.setAttribute('data-phase', String(((t.r * 3 + t.c) % 7) / 7));
+      pin(star, t, Z_LAYER.star);
     }
     {
-      const p = tokenPos(laid, s.door);
-      const phase = ((s.door.r * 3 + s.door.c) % 7) / 7;
-      parts.push(
-        `<div class="ice-door" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(s.door.r, 3)}"></div>`,
-        `<div class="ice-star-glow" data-star-glow="door" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(s.door.r, 2)}"></div>`,
-        `<div class="ice-star ice-star-door" data-star="door" data-phase="${phase}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(s.door.r, 3)}">` +
-          `<span class="ice-star-shadow"></span><span class="ice-star-sprite"></span></div>`,
-      );
+      const glow = glowPool.acquire();
+      glow.setAttribute('data-star-glow', 'door');
+      pin(glow, s.door, Z_LAYER.glow);
+      pin(doorPool.acquire(), s.door, Z_LAYER.door);
+      const star = starPool.acquire();
+      star.classList.add('ice-star-door');
+      star.setAttribute('data-star', 'door');
+      star.setAttribute('data-phase', String(((s.door.r * 3 + s.door.c) % 7) / 7));
+      pin(star, s.door, Z_LAYER.star);
     }
     s.boxes.forEach((_, i) => {
-      parts.push(`<div class="ice-box" id="ice-box-${i}"><span class="box-rig"></span></div>`);
+      const n = boxPool.acquire();
+      n.id = `ice-box-${i}`;
     });
-    parts.push(`<div class="ice-you" id="ice-you"><span class="you-rig"><span class="you-body"></span><span class="you-eye"><span class="you-pupil"></span></span></span></div>`);
+    if (youEl.parentElement !== board) board.appendChild(youEl);
     board.style.width = `${laid.gridW}px`;
     board.style.height = `${laid.gridH}px`;
     board.style.left = `${laid.originX}px`;
     board.style.top = `${laid.originY}px`;
     boxMotion.abort();
-    board.innerHTML = parts.join('');
     cellAdd.reset();
     bindStarIdle();
-    youMotion.bind(
-      board.querySelector('#ice-you'),
-      board.querySelector('.you-rig'),
-      board.querySelector('.you-eye'),
-      board.querySelector('.you-pupil'),
-    );
+    youMotion.bind(youEl, youEl.querySelector('.you-rig'), youEl.querySelector('.you-eye'), youEl.querySelector('.you-pupil'));
     placeTokens(s);
     const def = LEVELS[levelIndex]!;
     titleEl.textContent = `${def.id} ${def.title}`;
@@ -400,15 +510,9 @@ export function startIceGame(opts: {
     shell.style.transform = `scale(${scale})`;
   }
 
-  function stackZ(row: number, layer: number): number {
-    return (row + 1) * 10 + layer;
-  }
-
   function placeAt(el: HTMLElement, c: Cell): void {
     const p = tokenPos(laid, c);
-    el.style.left = `${p.x}px`;
-    el.style.top = `${p.y}px`;
-    el.style.zIndex = String(stackZ(c.r, 4));
+    placeBoardItem(el, p.x, p.y, c.r, Z_LAYER.actor);
   }
 
   function placeTokens(s: IceState): void {
@@ -438,7 +542,7 @@ export function startIceGame(opts: {
 
   function bindStarIdle(): void {
     idleStars = [];
-    board.querySelectorAll('.ice-star').forEach((el) => {
+    board.querySelectorAll('.ice-star:not(.is-pooled)').forEach((el) => {
       const sprite = el.querySelector('.ice-star-sprite') as HTMLElement | null;
       const shadow = el.querySelector('.ice-star-shadow') as HTMLElement | null;
       if (!sprite || !shadow) return;
@@ -548,18 +652,17 @@ export function startIceGame(opts: {
     if (prefersReduceMotion()) return;
     const p = pointOnStage(hud);
     const size = Math.max(p.w, p.h, 22);
-    const burst = document.createElement('div');
-    burst.className = 'ice-star-burst';
+    const burst = burstPool.acquire();
     burst.style.width = `${size}px`;
     burst.style.height = `${size}px`;
     burst.style.backgroundImage = `url(${starArt})`;
-    opts.stage.appendChild(burst);
     const gen = fxGen;
     const t0 = performance.now();
     const dur = 360;
+    const done = () => burstPool.release(burst);
     const tick = (now: number) => {
       if (disposed || gen !== fxGen) {
-        burst.remove();
+        done();
         return;
       }
       const t = Math.min(1, (now - t0) / dur);
@@ -568,7 +671,7 @@ export function startIceGame(opts: {
       burst.style.transform = `translate(${p.x - size / 2}px, ${p.y - size / 2}px) scale(${s})`;
       burst.style.opacity = (1 - e).toFixed(3);
       if (t < 1) requestAnimationFrame(tick);
-      else burst.remove();
+      else done();
     };
     burst.style.transform = `translate(${p.x - size / 2}px, ${p.y - size / 2}px) scale(1)`;
     burst.style.opacity = '1';
@@ -604,20 +707,12 @@ export function startIceGame(opts: {
     const to = hud ? pointOnStage(hud) : { x: DESIGN_WIDTH - 72, y: 48, w: 22, h: 22 };
     const size = Math.max(from.w, from.h, tune.starSize * 0.5, 28);
     const gen = fxGen;
-    const fly = document.createElement('div');
-    fly.className = 'ice-star-fly';
+    const fly = flyPool.acquire();
     fly.style.width = `${size}px`;
     fly.style.height = `${size}px`;
     fly.style.left = '0';
     fly.style.top = '0';
-    const flyBase = document.createElement('span');
-    flyBase.className = 'ice-star-fly-base';
-    flyBase.style.backgroundImage = `url(${starArt})`;
-    const flyAdd = document.createElement('span');
-    flyAdd.className = 'ice-star-fly-add';
-    flyAdd.style.backgroundImage = `url(${starArt})`;
-    fly.append(flyBase, flyAdd);
-    opts.stage.appendChild(fly);
+    const flyAdd = fly.querySelector('.ice-star-fly-add') as HTMLElement;
     hideStar(at);
 
     const endScale = Math.max(0.42, to.w / size);
@@ -655,13 +750,13 @@ export function startIceGame(opts: {
 
     return new Promise((resolve) => {
     const done = () => {
-      fly.remove();
+      flyPool.release(fly);
       lightHudStar(hudIndex);
       resolve();
     };
     const tick = (now: number) => {
       if (disposed || gen !== fxGen) {
-        fly.remove();
+        flyPool.release(fly);
         resolve();
         return;
       }
@@ -1041,6 +1136,14 @@ export function startIceGame(opts: {
       disposed = true;
       youMotion.abort();
       boxMotion.abort();
+      flyPool.releaseAll();
+      burstPool.releaseAll();
+      cellPool.releaseAll();
+      wallPool.releaseAll();
+      glowPool.releaseAll();
+      starPool.releaseAll();
+      doorPool.releaseAll();
+      boxPool.releaseAll();
       if (idleRaf) cancelAnimationFrame(idleRaf);
       idleRaf = 0;
       ro.disconnect();
