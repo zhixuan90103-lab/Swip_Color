@@ -30,7 +30,7 @@
 | 出题知识 | `docs/LEVEL-KNOWLEDGE.md` |
 | 十五关 | `docs/LEVEL-TEMPLATES.md` · `src/game/levels.ts` |
 | 画面/资源 | `docs/VISUAL.md` · `src/game/boardLayout.ts` · `src/assets/ui/` |
-| 角色运动 | `docs/YOU-MOTION.md` · `src/game/youMotion.ts` · `src/game/boxMotion.ts` |
+| 角色运动 | `docs/YOU-MOTION.md` · `youMotion.ts` · `boxMotion.ts` · `cellAdd.ts` · `starPickup.ts` |
 | 文档索引 | `docs/README.md` |
 
 ## DOM（勿拆）
@@ -73,7 +73,7 @@ npm run ios
 
 - 玩法：改 `src/game/*`，规则以 `docs/ICE-PUZZLE.md` 为准  
 - 画面：改 `src/assets/ui/`、`public/ui/table-bg.png`、`boardLayout.ts` 的 `TUNE_DEFAULT`；规范以 `docs/VISUAL.md` 为准  
-- 角色运动：改 `src/game/youMotion.ts`；规范以 `docs/YOU-MOTION.md` 为准  
+- 角色/场面 juice：改 `youMotion.ts` / `boxMotion.ts` / `cellAdd.ts` / `starPickup.ts`；规范以 `docs/YOU-MOTION.md` 为准  
 - 出手：手感 2（`swipeInput.ts` + `FEEL2_DEFAULT`），不要另写薄滑动替换它  
 - 保留：adapt / create-renderer / haptics / plugins / `base`  
 - 触控：忽略 letterbox 外；关卡矩形铺满冰格，非必要不放墙、不挖空  

@@ -14,6 +14,8 @@ export const YOU_SWAY_PERIOD = 1.7;
 export const YOU_SLIDE_LEAN = 14;
 export const YOU_SLIDE_STRETCH = 0.22;
 export const YOU_SLIDE_EYE = 0.16;
+export const PUSH_STEP_MS = 90;
+export const YOU_HIT_AMP_FULL_CELLS = 4;
 
 export const YOU_HIT_OVERLAP = 18;
 export const YOU_HIT_IN_DIST = 26;
@@ -28,7 +30,7 @@ export const YOU_HIT_SQUASH = 0.34;
 export const YOU_HIT_STRETCH = 0.28;
 export const YOU_HIT_LEAN = 22;
 export const YOU_HIT_LEAN_UD = 8;
-/** In-place bump only. Any 1+ cell slide uses full slam/recoil/settle. */
+/** 0-cell and 1-cell floor. 4+ cells = 1. */
 export const YOU_HIT_AMP_MIN = 0.45;
 
 export const YOU_BLINK_DUR = 0.18;
@@ -42,15 +44,15 @@ export type YouMotion = {
   bind: (root: HTMLElement | null, rig: HTMLElement | null, eye: HTMLElement | null, pupil: HTMLElement | null) => void;
   startSlide: (dir: Dir, now: number) => void;
   endSlide: () => void;
-  startHit: (dir: Dir, now: number, cells: number, push?: boolean) => void;
+  startHit: (dir: Dir, now: number, cells: number) => void;
   abort: () => void;
   tick: (now: number) => void;
 };
 
-export function hitAmpForCells(cells: number, _push = false): number {
+export function hitAmpForCells(cells: number): number {
   if (cells < 1) return YOU_HIT_AMP_MIN;
-  if (cells >= 4) return 1;
-  return YOU_HIT_AMP_MIN + (1 - YOU_HIT_AMP_MIN) * ((cells - 1) / 3);
+  if (cells >= YOU_HIT_AMP_FULL_CELLS) return 1;
+  return YOU_HIT_AMP_MIN + (1 - YOU_HIT_AMP_MIN) * ((cells - 1) / (YOU_HIT_AMP_FULL_CELLS - 1));
 }
 
 export function hitTimesForAmp(amp: number): { inMs: number; backMs: number } {
@@ -62,8 +64,8 @@ export function hitTimesForAmp(amp: number): { inMs: number; backMs: number } {
   };
 }
 
-export function hitDurationMs(cells: number, push = false): number {
-  const { inMs, backMs } = hitTimesForAmp(hitAmpForCells(cells, push));
+export function hitDurationMs(cells: number): number {
+  const { inMs, backMs } = hitTimesForAmp(hitAmpForCells(cells));
   return inMs + backMs;
 }
 
@@ -222,12 +224,12 @@ export function createYouMotion(opts: { getLookTargets: () => LookTarget[] }): Y
     endSlide() {
       slideDir = null;
     },
-    startHit(dir, now, cells, push = false) {
+    startHit(dir, now, cells) {
       hitOn = true;
       hitDir = dir;
       hitT0 = now;
       hitFromRot = slideRot;
-      hitAmp = hitAmpForCells(cells, push);
+      hitAmp = hitAmpForCells(cells);
       const times = hitTimesForAmp(hitAmp);
       hitInMs = times.inMs;
       hitBackMs = times.backMs;

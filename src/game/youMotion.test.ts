@@ -11,7 +11,6 @@ test('slam scales with cells for slide and push', () => {
   assert.equal(hitAmpForCells(1), YOU_HIT_AMP_MIN);
   assert.ok(hitAmpForCells(2) > hitAmpForCells(1));
   assert.equal(hitAmpForCells(4), 1);
-  assert.equal(hitAmpForCells(1, true), hitAmpForCells(1));
 });
 
 test('in-place bump uses 45% amp', () => {

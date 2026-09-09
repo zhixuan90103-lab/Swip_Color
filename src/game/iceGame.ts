@@ -14,22 +14,24 @@ import { FEEL2_DEFAULT } from './feel';
 import { applyDir } from './iceSim';
 import { attachSwipeInput } from './swipeInput';
 import { createBoxMotion } from './boxMotion';
+import { createCellAdd } from './cellAdd';
 import { DIR_DELTA, ratingStars, type Cell, type Dir, type IceState } from './iceTypes';
 import { LEVELS } from './levels';
-import { createYouMotion, hitAmpForCells, hitDurationMs, type LookTarget } from './youMotion';
+import {
+  STAR_CROUCH_DROP,
+  STAR_CROUCH_MS,
+  STAR_IDLE_PERIOD,
+  STAR_IDLE_RISE,
+  STAR_IDLE_STRETCH,
+  STAR_IDLE_Y,
+  STAR_RISE_MS,
+  STAR_RISE_Y,
+  STAR_TO_HUD_MS,
+} from './starPickup';
+import { PUSH_STEP_MS, createYouMotion, hitAmpForCells, hitDurationMs, type LookTarget } from './youMotion';
 
 const TUNE_KEY = 'ice-board-tune-v10';
 const STEP_MS = FEEL2_DEFAULT.slideMs;
-const PUSH_STEP_MS = 90;
-const STAR_RISE_MS = 110;
-const STAR_RISE_Y = 100;
-const STAR_CROUCH_MS = 260;
-const STAR_CROUCH_DROP = 50;
-const STAR_TO_HUD_MS = 280;
-const STAR_IDLE_PERIOD = 2.2;
-const STAR_IDLE_Y = 4.2;
-const STAR_IDLE_STRETCH = 0.038;
-const STAR_IDLE_RISE = 0.44;
 
 function loadTune(): BoardTune {
   try {
@@ -300,6 +302,13 @@ export function startIceGame(opts: {
   opts.uiRoot.replaceChildren(root);
 
   const board = root.querySelector('#ice-board') as HTMLElement;
+  const cellAdd = createCellAdd({
+    getBoard: () => board,
+    getLaid: () => laid,
+    getYou: () => board.querySelector('#ice-you'),
+    getBaseStepMs: () => STEP_MS,
+    prefersReduce: () => prefersReduceMotion(),
+  });
   const starsEl = root.querySelector('#ice-stars') as HTMLElement;
   const titleEl = root.querySelector('#ice-title') as HTMLElement;
   const hintEl = root.querySelector('#ice-hint') as HTMLElement;
@@ -354,7 +363,7 @@ export function startIceGame(opts: {
     board.style.top = `${laid.originY}px`;
     boxMotion.abort();
     board.innerHTML = parts.join('');
-    youCellKey = '';
+    cellAdd.reset();
     bindStarIdle();
     youMotion.bind(
       board.querySelector('#ice-you'),
@@ -394,83 +403,10 @@ export function startIceGame(opts: {
     el.style.zIndex = String(stackZ(c.r, 4));
   }
 
-  const CELL_ADD_OP = 0.4;
-  const CELL_ADD_FADE_MS = 450;
-  let youCellKey = '';
-  let cellAddStepMs = STEP_MS;
-  let slideTrack: { from: Cell; to: Cell; t0: number; ms: number } | null = null;
-
-  function cellAddEl(c: Cell): HTMLElement | null {
-    return board.querySelector(`[data-cell="${c.r}-${c.c}"] .ice-cell-add`);
-  }
-
-  function lightCellAdd(c: Cell, fade: boolean): void {
-    const add = cellAddEl(c);
-    if (!add) return;
-    add.style.transition = 'none';
-    add.style.opacity = String(CELL_ADD_OP);
-    void add.offsetWidth;
-    if (prefersReduceMotion()) {
-      add.style.opacity = fade ? '0' : String(CELL_ADD_OP);
-      return;
-    }
-    if (fade) {
-      const fadeMs = CELL_ADD_FADE_MS * (cellAddStepMs / STEP_MS);
-      add.style.transition = `opacity ${fadeMs}ms ease-out`;
-      add.style.opacity = '0';
-    }
-  }
-
-  function setYouCell(c: Cell): void {
-    const key = `${c.r}-${c.c}`;
-    if (key === youCellKey) return;
-    if (youCellKey) {
-      const prev = youCellKey.split('-').map(Number);
-      lightCellAdd({ r: prev[0]!, c: prev[1]! }, true);
-    }
-    youCellKey = key;
-    lightCellAdd(c, false);
-  }
-
-  function syncYouCellFromSprite(): void {
-    let x = 0;
-    let y = 0;
-    if (slideTrack) {
-      const u = Math.min(1, Math.max(0, (performance.now() - slideTrack.t0) / slideTrack.ms));
-      const a = tokenPos(laid, slideTrack.from);
-      const b = tokenPos(laid, slideTrack.to);
-      x = a.x + (b.x - a.x) * u;
-      y = a.y + (b.y - a.y) * u;
-    } else {
-      const youEl = board.querySelector('#ice-you') as HTMLElement | null;
-      if (!youEl) return;
-      x = parseFloat(getComputedStyle(youEl).left);
-      y = parseFloat(getComputedStyle(youEl).top);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-    }
-    let best: Cell | null = null;
-    let bestD = Infinity;
-    board.querySelectorAll('.ice-cell[data-cell]').forEach((el) => {
-      const id = el.getAttribute('data-cell');
-      if (!id) return;
-      const parts = id.split('-');
-      const r = Number(parts[0]);
-      const c = Number(parts[1]);
-      if (!Number.isFinite(r) || !Number.isFinite(c)) return;
-      const p = tokenPos(laid, { r, c });
-      const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
-      if (d < bestD) {
-        bestD = d;
-        best = { r, c };
-      }
-    });
-    if (best) setYouCell(best);
-  }
-
   function placeTokens(s: IceState): void {
     const you = board.querySelector('#ice-you') as HTMLElement | null;
     if (you) placeAt(you, s.player);
-    setYouCell(s.player);
+    cellAdd.hold(s.player);
     s.boxes.forEach((b, i) => {
       const el = board.querySelector(`#ice-box-${i}`) as HTMLElement | null;
       if (!el) return;
@@ -513,7 +449,7 @@ export function startIceGame(opts: {
   function tickStarIdle(now: number): void {
     if (disposed) return;
     idleRaf = requestAnimationFrame(tickStarIdle);
-    syncYouCellFromSprite();
+    cellAdd.tick();
     if (prefersReduceMotion()) return;
     youMotion.tick(now);
     boxMotion.tick(now);
@@ -990,7 +926,7 @@ export function startIceGame(opts: {
     const picked = result.starsPicked.slice();
     let pi = 0;
     const stepMs = result.kind === 'push' ? PUSH_STEP_MS : STEP_MS;
-    cellAddStepMs = stepMs;
+    cellAdd.setStepMs(stepMs);
     const slideEase = `left ${stepMs}ms linear, top ${stepMs}ms linear`;
     you.style.transition = slideEase;
     if (boxEl) boxEl.style.transition = slideEase;
@@ -999,7 +935,7 @@ export function startIceGame(opts: {
     for (let i = 1; i < steps; i++) {
       const prev = result.playerPath[i - 1]!;
       const next = result.playerPath[i]!;
-      slideTrack = { from: prev, to: next, t0: performance.now(), ms: stepMs };
+      cellAdd.beginStep(prev, next, performance.now(), stepMs);
       placeAt(you, next);
       if (boxEl && result.boxPath && result.boxPath[i]) {
         placeAt(boxEl, result.boxPath[i]!);
@@ -1017,11 +953,10 @@ export function startIceGame(opts: {
       }
     }
 
-    slideTrack = null;
+    cellAdd.endTrack();
     const cells = Math.max(0, steps - 1);
     const now = performance.now();
-    const pushing = result.kind === 'push';
-    youMotion.startHit(dir, now, cells, pushing);
+    youMotion.startHit(dir, now, cells);
     youMotion.endSlide();
     const stop = result.playerPath[steps - 1]!;
     const face = DIR_DELTA[dir];
@@ -1030,8 +965,8 @@ export function startIceGame(opts: {
     let boxI = result.state.boxes.findIndex((b) => b.r === br && b.c === bc);
     if (boxI < 0 && result.pushedBox != null) boxI = result.pushedBox;
     const hitBox = boxI >= 0 ? (board.querySelector(`#ice-box-${boxI}`) as HTMLElement | null) : null;
-    if (hitBox) boxMotion.startHit(hitBox, dir, now, hitAmpForCells(cells, pushing));
-    await sleep(hitDurationMs(cells, pushing));
+    if (hitBox) boxMotion.startHit(hitBox, dir, now, hitAmpForCells(cells));
+    await sleep(hitDurationMs(cells));
 
     state = result.state;
     placeTokens(state);

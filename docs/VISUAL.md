@@ -2,7 +2,7 @@
 
 日期：**2026-09-08**。本文是**表现层真源**（贴图、托盘布局、调参）。玩法规则仍以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) 为准。
 
-实现：`src/game/boardLayout.ts`（槽位/托盘）· `iceGame.ts`（DOM、调参）· `youMotion.ts`（角色运动，见 [YOU-MOTION.md](./YOU-MOTION.md)）· `src/style.css`。
+实现：`src/game/boardLayout.ts`（槽位/托盘）· `iceGame.ts`（DOM、调参）· juice 见 [YOU-MOTION.md](./YOU-MOTION.md) · `src/style.css`。
 
 ---
 
@@ -72,7 +72,7 @@ localStorage 键：`ice-board-tune-v10`。改默认时升版本，避免旧缓�
 
 | layer | 物件 |
 |-------|------|
-| 0 | 冰砖 + Additive（整盘冰砖 z=0，亮格在角色**脚下**，不得盖过角色。按滑步插值亮 0.4；空滑 50ms、推箱 90ms，淡出同比 450/810ms） |
+| 0 | 冰砖 + Additive（整盘 z=0，在角色脚下；细则见 YOU-MOTION §6） |
 | 2 | 墙、星光 |
 | 3 | 星、终点 |
 | 4 | 箱、角色（滑动时随行更新） |
