@@ -87,7 +87,7 @@ export const FEEL2_DEFAULT: Feel2 = {
   commitPx: 30,
   speedPxS: 200,
   axisRatio: 1.55,
-  slideMs: 65,
+  slideMs: 50,
   slideEase: 'soft',
   appearMs: 250,
   mergePopMs: 200,
@@ -265,7 +265,7 @@ export const FEEL2_FIELDS: FieldSpec[] = [
   {
     key: 'slideMs',
     label: '每格滑移',
-    why: '穿过 1 格的时间。走 3 格约 3 倍时长。默认 65ms/格。',
+    why: '穿过 1 格的时间。走 3 格约 3 倍时长。默认 50ms/格。',
     kind: 'range',
     min: 20,
     max: 200,

@@ -46,7 +46,7 @@ const YOU_HIT_OVERLAP = 18;
 const YOU_HIT_IN_DIST = 26;
 const YOU_HIT_RECOIL = 2.6;
 const YOU_HIT_IN_MS = 70;
-const YOU_HIT_BACK_MS = 360;
+const YOU_HIT_BACK_MS = 300;
 const YOU_HIT_SQUASH = 0.34;
 const YOU_HIT_STRETCH = 0.28;
 const YOU_HIT_LEAN = 22;
@@ -169,6 +169,10 @@ export function startIceGame(opts: {
   let youHitDir: Dir | null = null;
   let youHitT0 = 0;
   let youHitFromRot = 0;
+  let youHitOffX = 0;
+  let youHitOffY = 0;
+  let youHitOffXVel = 0;
+  let youHitOffYVel = 0;
 
   function mix(min: number, max: number): number {
     return min + Math.random() * (max - min);
@@ -646,22 +650,9 @@ export function startIceGame(opts: {
         let bounce = 0;
         if (elapsed < YOU_HIT_IN_MS) {
           bounce = easeOutCubic(elapsed / YOU_HIT_IN_MS);
-        } else if (elapsed < YOU_HIT_IN_MS + YOU_HIT_BACK_MS) {
-          const u = (elapsed - YOU_HIT_IN_MS) / YOU_HIT_BACK_MS;
-          bounce = Math.exp(-3.1 * u) * Math.cos(u * Math.PI * 2.15);
         } else {
-          youHitOn = false;
-          youHitDir = null;
-          youSlideRot = 0;
-          youSlideRotVel = 0;
-          youSlideStr = 0;
-          youSlideStrVel = 0;
-          youPhase = 0;
-          youLean = 0;
-          youLeanVel = 0;
-          youSy = 1;
-          youSyVel = 0;
-          bounce = 0;
+          const u = Math.min(1, (elapsed - YOU_HIT_IN_MS) / YOU_HIT_BACK_MS);
+          bounce = Math.exp(-3.1 * u) * Math.cos(u * Math.PI * 2.15);
         }
         const dist = bounce < 0 ? YOU_HIT_OVERLAP * YOU_HIT_RECOIL * bounce : YOU_HIT_IN_DIST * bounce;
         const uBack = Math.max(0, (elapsed - YOU_HIT_IN_MS) / YOU_HIT_BACK_MS);
@@ -680,11 +671,46 @@ export function startIceGame(opts: {
         const sign = d.x !== 0 ? (youHitFromRot < 0 || d.x < 0 ? -1 : 1) : 1;
         const leanAmp = d.x !== 0 ? YOU_HIT_LEAN * (d.x < 0 ? -1 : 1) : YOU_HIT_LEAN_UD * sign;
         const sway =
-          elapsed > YOU_HIT_IN_MS && youHitOn
-            ? Math.exp(-2.4 * uBack) * Math.cos(uBack * Math.PI * 2)
+          elapsed > YOU_HIT_IN_MS
+            ? Math.exp(-2.4 * Math.min(1, uBack)) * Math.cos(Math.min(1, uBack) * Math.PI * 2)
             : 0;
-        hitRot = leanAmp * bounce + 8 * sway;
+        if (elapsed < YOU_HIT_IN_MS) {
+          hitRot = youHitFromRot + (leanAmp - youHitFromRot) * bounce;
+        } else {
+          hitRot = leanAmp * bounce + 8 * sway;
+        }
         youSlideRot = hitRot;
+        youHitOffX = hitX;
+        youHitOffY = hitY;
+        youHitOffXVel = 0;
+        youHitOffYVel = 0;
+        if (elapsed >= YOU_HIT_IN_MS + YOU_HIT_BACK_MS) {
+          youLean += hitRot;
+          youSy = hitSy;
+          youLeanVel = 0;
+          youSyVel = 0;
+          youSlideRot = 0;
+          youSlideRotVel = 0;
+          youSlideStr = 0;
+          youSlideStrVel = 0;
+          youPhase = 0;
+          youHitOn = false;
+          youHitDir = null;
+          hitSx = 1;
+          hitSy = 1;
+          hitRot = 0;
+        }
+      } else {
+        youHitOffXVel += (0 - youHitOffX) * 22 * dt;
+        youHitOffXVel *= Math.exp(-9.5 * dt);
+        youHitOffX += youHitOffXVel * dt;
+        youHitOffYVel += (0 - youHitOffY) * 22 * dt;
+        youHitOffYVel *= Math.exp(-9.5 * dt);
+        youHitOffY += youHitOffYVel * dt;
+        if (Math.abs(youHitOffX) < 0.04 && Math.abs(youHitOffXVel) < 0.2) youHitOffX = 0;
+        if (Math.abs(youHitOffY) < 0.04 && Math.abs(youHitOffYVel) < 0.2) youHitOffY = 0;
+        hitX = youHitOffX;
+        hitY = youHitOffY;
       }
       const youEl = board.querySelector('#ice-you') as HTMLElement | null;
       youEl?.style.setProperty('--you-hit-x', `${hitX.toFixed(2)}px`);
