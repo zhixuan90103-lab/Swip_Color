@@ -21,9 +21,7 @@ final class BridgeViewController: CAPBridgeViewController, UIGestureRecognizerDe
         false
     }
 
-    /// 不 defer 底边：从 Home 条上滑一次即回桌面。
-    /// 棋盘上的上滑起点不在边缘，系统不会当成回主屏。
-    /// 不要开 prefersHomeIndicatorAutoHidden。
+    /// 不 defer 底边：Home 条上滑一次即回桌面。棋盘上滑起点不在边缘。
     override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
         []
     }
@@ -40,7 +38,6 @@ final class BridgeViewController: CAPBridgeViewController, UIGestureRecognizerDe
         setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
     }
 
-    /// Home 指示条高度一带（约 22pt）才拦向下。第一次吞掉，5s 内第二次放给系统。
     private func edgeBand() -> CGFloat {
         min(max(view.safeAreaInsets.bottom * 0.35, 10), 14)
     }

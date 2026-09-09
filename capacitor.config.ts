@@ -6,8 +6,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * - base './' on Vite → relative assets for offline WebView
  */
 const config: CapacitorConfig = {
-  appId: 'com.wangzhixuan.swipe2048',
-  appName: 'Swipe 2048',
+  appId: 'com.wangzhixuan.iceslide',
+  appName: 'Ice Slide',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

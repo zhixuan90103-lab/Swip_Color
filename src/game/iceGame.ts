@@ -7,15 +7,25 @@ import {
   type BoardLayout,
   type BoardTune,
 } from './boardLayout';
+import { DESIGN_HEIGHT, DESIGN_WIDTH } from '../adapt/design';
+import starArt from '../assets/ui/star.png';
 import { iceDirFromSwipe } from './dir';
 import { FEEL2_DEFAULT } from './feel';
 import { applyDir } from './iceSim';
 import { attachSwipeInput } from './swipeInput';
-import { cellKey, ratingStars, type Cell, type Dir, type IceState } from './iceTypes';
+import { ratingStars, type Cell, type Dir, type IceState } from './iceTypes';
 import { LEVELS } from './levels';
 
 const TUNE_KEY = 'ice-board-tune-v10';
 const STEP_MS = FEEL2_DEFAULT.slideMs;
+const STAR_TO_HEAD_MS = 110;
+const STAR_CROUCH_MS = 260;
+const STAR_CROUCH_DROP = 50;
+const STAR_TO_HUD_MS = 280;
+const STAR_IDLE_PERIOD = 2.2;
+const STAR_IDLE_Y = 4.2;
+const STAR_IDLE_STRETCH = 0.038;
+const STAR_IDLE_RISE = 0.44;
 
 function loadTune(): BoardTune {
   try {
@@ -84,6 +94,16 @@ export function startIceGame(opts: {
   let state = LEVELS[0]!.make();
   let busy = false;
   let disposed = false;
+  let fxGen = 0;
+  let idleRaf = 0;
+  type StarIdle = {
+    root: HTMLElement;
+    sprite: HTMLElement;
+    shadow: HTMLElement;
+    glow: HTMLElement | null;
+    phase: number;
+  };
+  let idleStars: StarIdle[] = [];
   const tune = loadTune();
   let laid: BoardLayout = layoutBoard(tune, state.rows, state.cols);
 
@@ -265,6 +285,8 @@ export function startIceGame(opts: {
   const nextBtn = root.querySelector('#ice-next') as HTMLButtonElement;
 
   function paintStatic(s: IceState): void {
+    fxGen += 1;
+    opts.stage.querySelectorAll('.ice-star-fly').forEach((el) => el.remove());
     laid = layoutBoard(tune, s.rows, s.cols);
     applyTuneCss();
     const parts: string[] = [];
@@ -283,10 +305,12 @@ export function startIceGame(opts: {
     }
     for (const t of s.stars) {
       const p = tokenPos(laid, t);
-      const key = cellKey(t);
+      const phase = ((t.r * 3 + t.c) % 7) / 7;
+      const id = `${t.r}-${t.c}`;
       parts.push(
-        `<div class="ice-star-glow" data-star-glow="${key}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(t.r, 2)}"></div>`,
-        `<div class="ice-star" data-star="${key}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(t.r, 3)}"></div>`,
+        `<div class="ice-star-glow" data-star-glow="${id}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(t.r, 2)}"></div>`,
+        `<div class="ice-star" data-star="${id}" data-phase="${phase}" style="left:${p.x}px;top:${p.y}px;z-index:${stackZ(t.r, 3)}">` +
+          `<span class="ice-star-shadow"></span><span class="ice-star-sprite"></span></div>`,
       );
     }
     {
@@ -304,6 +328,7 @@ export function startIceGame(opts: {
     board.style.left = `${laid.originX}px`;
     board.style.top = `${laid.originY}px`;
     board.innerHTML = parts.join('');
+    bindStarIdle();
     placeTokens(s);
     const def = LEVELS[levelIndex]!;
     titleEl.textContent = `${def.id} ${def.title}`;
@@ -346,10 +371,289 @@ export function startIceGame(opts: {
     });
   }
 
+  function starIdleHeight(u: number): number {
+    if (u < STAR_IDLE_RISE) {
+      const x = u / STAR_IDLE_RISE;
+      return 0.5 - 0.5 * Math.cos(Math.PI * x);
+    }
+    const x = (u - STAR_IDLE_RISE) / (1 - STAR_IDLE_RISE);
+    return 0.5 + 0.5 * Math.cos(Math.PI * x);
+  }
+
+  function starIdleSpeed(u: number): number {
+    if (u < STAR_IDLE_RISE) return Math.sin(Math.PI * (u / STAR_IDLE_RISE));
+    return Math.sin(Math.PI * ((u - STAR_IDLE_RISE) / (1 - STAR_IDLE_RISE)));
+  }
+
+  function bindStarIdle(): void {
+    idleStars = [];
+    board.querySelectorAll('.ice-star').forEach((el) => {
+      const sprite = el.querySelector('.ice-star-sprite') as HTMLElement | null;
+      const shadow = el.querySelector('.ice-star-shadow') as HTMLElement | null;
+      if (!sprite || !shadow) return;
+      const id = el.getAttribute('data-star');
+      idleStars.push({
+        root: el as HTMLElement,
+        sprite,
+        shadow,
+        glow: id ? (board.querySelector(`[data-star-glow="${id}"]`) as HTMLElement | null) : null,
+        phase: Number(el.getAttribute('data-phase')) || 0,
+      });
+    });
+    if (!idleRaf) idleRaf = requestAnimationFrame(tickStarIdle);
+  }
+
+  function tickStarIdle(now: number): void {
+    if (disposed) return;
+    idleRaf = requestAnimationFrame(tickStarIdle);
+    if (prefersReduceMotion() || idleStars.length === 0) return;
+    const cycle = now / 1000 / STAR_IDLE_PERIOD;
+    const glowBase = tune.glowOpacity / 100;
+    for (const star of idleStars) {
+      if (star.root.classList.contains('gone')) continue;
+      const u = (cycle + star.phase) % 1;
+      const h = starIdleHeight(u);
+      const speed = starIdleSpeed(u);
+      const sy = 1 + STAR_IDLE_STRETCH * speed - STAR_IDLE_STRETCH * 0.85 * h;
+      const sx = 1 / sy;
+      star.sprite.style.transform = `translateY(${(-STAR_IDLE_Y * h).toFixed(2)}px) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+      if (star.glow && !star.glow.classList.contains('is-fading')) {
+        const g = 1.28 - 0.58 * h;
+        star.glow.style.transform =
+          `translate(calc(-50% + var(--ice-glow-x)), calc(-50% + var(--ice-glow-y))) scale(${g.toFixed(3)})`;
+        star.glow.style.opacity = (Math.max(0.25, glowBase) * (0.92 - 0.22 * h)).toFixed(3);
+        star.glow.dataset.scale = g.toFixed(3);
+      }
+    }
+  }
+
   function hideStar(at: Cell): void {
-    const key = cellKey(at);
-    board.querySelector(`[data-star="${key}"]`)?.classList.add('gone');
-    board.querySelector(`[data-star-glow="${key}"]`)?.classList.add('gone');
+    const id = `${at.r}-${at.c}`;
+    board.querySelector(`[data-star="${id}"]`)?.classList.add('gone');
+  }
+
+  function glowEl(at: Cell): HTMLElement | null {
+    return board.querySelector(`[data-star-glow="${at.r}-${at.c}"]`) as HTMLElement | null;
+  }
+
+  function prefersReduceMotion(): boolean {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function pointOnStage(el: HTMLElement): { x: number; y: number; w: number; h: number } {
+    const s = opts.stage.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const sw = Math.max(s.width, 1);
+    const sh = Math.max(s.height, 1);
+    return {
+      x: ((r.left + r.width / 2 - s.left) / sw) * DESIGN_WIDTH,
+      y: ((r.top + r.height / 2 - s.top) / sh) * DESIGN_HEIGHT,
+      w: (r.width / sw) * DESIGN_WIDTH,
+      h: (r.height / sh) * DESIGN_HEIGHT,
+    };
+  }
+
+  function easeOutCubic(t: number): number {
+    return 1 - (1 - t) ** 3;
+  }
+
+  function easeInQuart(t: number): number {
+    return t * t * t * t;
+  }
+
+  function quad(a: number, b: number, c: number, t: number): number {
+    const u = 1 - t;
+    return u * u * a + 2 * u * t * b + t * t * c;
+  }
+
+  function clamp01(n: number, lo: number, hi: number): number {
+    return Math.min(hi, Math.max(lo, n));
+  }
+
+  function lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t;
+  }
+
+  function lerpAngle(a: number, b: number, t: number): number {
+    let d = b - a;
+    while (d > 180) d -= 360;
+    while (d < -180) d += 360;
+    return a + d * t;
+  }
+
+
+
+  function headAboveYou(): { x: number; y: number } {
+    const you = board.querySelector('#ice-you') as HTMLElement | null;
+    if (!you) return { x: DESIGN_WIDTH * 0.5, y: DESIGN_HEIGHT * 0.4 };
+    const p = pointOnStage(you);
+    return { x: p.x, y: p.y - 100 };
+  }
+
+  function lightHudStar(index: number): void {
+    const hud = starsEl.querySelector(`.hud-star[data-i="${index}"]`) as HTMLElement | null;
+    if (!hud) return;
+    hud.classList.add('is-on');
+    hud.classList.remove('is-pop');
+    void hud.offsetWidth;
+    hud.classList.add('is-pop');
+  }
+
+  function collectStarFx(at: Cell, hudIndex: number): void {
+    const id = `${at.r}-${at.c}`;
+    const star = board.querySelector(`[data-star="${id}"]`) as HTMLElement | null;
+    const glow = glowEl(at);
+    const glowScale0 = Number(glow?.dataset.scale) || 1;
+    const glowBase = Math.max(0.25, tune.glowOpacity / 100);
+    const hud = starsEl.querySelector(`.hud-star[data-i="${hudIndex}"]`) as HTMLElement | null;
+    if (!star || prefersReduceMotion()) {
+      hideStar(at);
+      glow?.classList.add('gone');
+      lightHudStar(hudIndex);
+      return;
+    }
+
+    const sprite = (star.querySelector('.ice-star-sprite') as HTMLElement | null) ?? star;
+    const from = pointOnStage(sprite);
+    const to = hud ? pointOnStage(hud) : { x: DESIGN_WIDTH - 72, y: 48, w: 22, h: 22 };
+    const size = Math.max(from.w, from.h, tune.starSize * 0.5, 28);
+    const gen = fxGen;
+    const fly = document.createElement('div');
+    fly.className = 'ice-star-fly';
+    fly.style.width = `${size}px`;
+    fly.style.height = `${size}px`;
+    fly.style.left = '0';
+    fly.style.top = '0';
+    const flyBase = document.createElement('span');
+    flyBase.className = 'ice-star-fly-base';
+    flyBase.style.backgroundImage = `url(${starArt})`;
+    const flyAdd = document.createElement('span');
+    flyAdd.className = 'ice-star-fly-add';
+    flyAdd.style.backgroundImage = `url(${starArt})`;
+    fly.append(flyBase, flyAdd);
+    opts.stage.appendChild(fly);
+    hideStar(at);
+
+    const endScale = Math.max(0.42, to.w / size);
+    const t0 = performance.now();
+    let lastX = from.x;
+    let lastY = from.y;
+    let headHoldX = from.x;
+    let headHoldY = from.y;
+    let hoverX = from.x;
+    let hoverY = from.y;
+    let lastSx = 1;
+    let lastSy = 1;
+    let lastRot = 0;
+    let hudFromSx = 1;
+    let hudFromSy = 1;
+    let hudFromRot = 0;
+    let hudFromX = from.x;
+    let hudFromY = from.y;
+    let hudPoseCaptured = false;
+
+    const place = (x: number, y: number, sx: number, sy: number, rotDeg: number, a: number, add: number) => {
+      fly.style.transformOrigin = '50% 50%';
+      fly.style.transform =
+        `translate(${x - size / 2}px, ${y - size / 2}px) rotate(${rotDeg}deg) scale(${sx}, ${sy})`;
+      fly.style.opacity = String(a);
+      flyAdd.style.opacity = String(add);
+      lastX = x;
+      lastY = y;
+      lastSx = sx;
+      lastSy = sy;
+      lastRot = rotDeg;
+    };
+
+    place(from.x, from.y, 1, 1, 0, 1, 0);
+
+    const tick = (now: number) => {
+      if (disposed || gen !== fxGen) {
+        fly.remove();
+        return;
+      }
+      const elapsed = now - t0;
+      if (elapsed <= STAR_TO_HEAD_MS) {
+        const t = Math.min(1, elapsed / STAR_TO_HEAD_MS);
+        const e = easeOutCubic(t);
+        const head = headAboveYou();
+        const x = lerp(from.x, head.x, e);
+        const y = lerp(from.y, head.y, e);
+        const sy = 1 + 0.34 * Math.sin(Math.PI * t);
+        const sx = 1 / sy;
+        const rot = lerpAngle((Math.atan2(head.x - from.x, -(head.y - from.y)) * 180) / Math.PI, 0, e);
+        place(x, y, sx, sy, rot, 1, 0.3 * e);
+        headHoldX = head.x;
+        headHoldY = head.y;
+        hoverX = x;
+        hoverY = y;
+        requestAnimationFrame(tick);
+        return;
+      }
+
+      const afterCrouch = STAR_TO_HEAD_MS + STAR_CROUCH_MS;
+      if (elapsed <= afterCrouch) {
+        const t = Math.min(1, (elapsed - STAR_TO_HEAD_MS) / STAR_CROUCH_MS);
+        const e = easeOutCubic(t);
+        const x = headHoldX;
+        const y = lerp(headHoldY, headHoldY + STAR_CROUCH_DROP, e);
+        const sy = lerp(1, 0.74, e);
+        const sx = 1 / sy;
+        const flicker = 0.22 + 0.08 * Math.sin(t * Math.PI * 6);
+        place(x, y, sx, sy, 0, 1, flicker);
+        hoverX = x;
+        hoverY = y;
+        requestAnimationFrame(tick);
+        return;
+      }
+
+      if (!hudPoseCaptured) {
+        hudFromSx = lastSx;
+        hudFromSy = lastSy;
+        hudFromRot = lastRot;
+        hudFromX = hoverX;
+        hudFromY = hoverY;
+        hudPoseCaptured = true;
+      }
+
+      const u = Math.min(1, (elapsed - afterCrouch) / STAR_TO_HUD_MS);
+      const e = easeInQuart(u);
+      const p1x = (hudFromX + to.x) * 0.5 + (hudFromX < to.x ? -10 : 10);
+      const p1y = Math.min(hudFromY, to.y) - 28;
+      const x = quad(hudFromX, p1x, to.x, e);
+      const y = quad(hudFromY, p1y, to.y, e);
+      const dx = x - lastX;
+      const dy = y - lastY;
+      const spd = Math.hypot(dx, dy);
+      const flightRot = spd > 0.35 ? (Math.atan2(dy, dx) * 180) / Math.PI : hudFromRot;
+      const rot = lerpAngle(hudFromRot, flightRot, easeOutCubic(Math.min(1, u / 0.28)));
+      const stretch = clamp01(1 + spd * 0.045, 1, 1.42);
+      const body = lerp(Math.sqrt(hudFromSx * hudFromSy), endScale, e);
+      const shrink = lerp(1, 0.22, e);
+      const sxFly = stretch * body;
+      const syFly = (1 / stretch) * body;
+      const blend = easeOutCubic(Math.min(1, u / 0.22));
+      const sx = lerp(hudFromSx, sxFly, blend) * shrink;
+      const sy = lerp(hudFromSy, syFly, blend) * shrink;
+      const a = 1 - e;
+      place(x, y, sx, sy, rot, a, lerp(0.3, 0, e));
+      if (glow) {
+        glow.classList.add('is-fading');
+        const gf = easeOutCubic(Math.min(1, u / 0.28));
+        const gs = lerp(glowScale0, glowScale0 * 0.72, gf);
+        glow.style.transform =
+          `translate(calc(-50% + var(--ice-glow-x)), calc(-50% + var(--ice-glow-y))) scale(${gs.toFixed(3)})`;
+        glow.style.opacity = (glowBase * (1 - gf)).toFixed(3);
+        if (gf >= 1) glow.classList.add('gone');
+      }
+      if (u < 1) {
+        requestAnimationFrame(tick);
+        return;
+      }
+      fly.remove();
+      lightHudStar(hudIndex);
+    };
+    requestAnimationFrame(tick);
   }
 
   function applyTuneCss(): void {
@@ -565,7 +869,7 @@ export function startIceGame(opts: {
       }
       const here = result.playerPath[i]!;
       if (picked[pi] && picked[pi]!.r === here.r && picked[pi]!.c === here.c) {
-        hideStar(picked[pi]!);
+        collectStarFx(picked[pi]!, state.collected + pi);
         pi += 1;
       }
       await sleep(STEP_MS);
@@ -573,9 +877,6 @@ export function startIceGame(opts: {
     }
 
     state = result.state;
-    starsEl.querySelectorAll('.hud-star').forEach((el, i) => {
-      el.classList.toggle('is-on', i < state.collected);
-    });
     placeTokens(state);
 
     if (state.won) {
@@ -611,6 +912,8 @@ export function startIceGame(opts: {
   return {
     dispose() {
       disposed = true;
+      if (idleRaf) cancelAnimationFrame(idleRaf);
+      idleRaf = 0;
       ro.disconnect();
       swipe.dispose();
       root.remove();
