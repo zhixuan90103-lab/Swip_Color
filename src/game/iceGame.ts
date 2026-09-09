@@ -38,6 +38,7 @@ const YOU_STRETCH_MIN = 0.2;
 const YOU_STRETCH_MAX = 0.3;
 const YOU_PERIOD_MIN = 1.55;
 const YOU_PERIOD_MAX = 1.95;
+const YOU_BLINK_DUR = 0.18;
 
 function loadTune(): BoardTune {
   try {
@@ -117,6 +118,19 @@ export function startIceGame(opts: {
   };
   let idleStars: StarIdle[] = [];
   let youRig: HTMLElement | null = null;
+  let youEye: HTMLElement | null = null;
+  let youBlinkStart = 0;
+  let youNextBlinkAt = 0;
+  let youDoubleBlink = false;
+  let youPupil: HTMLElement | null = null;
+  let youLookX = 0;
+  let youLookY = 0;
+  let youLookFromX = 0;
+  let youLookFromY = 0;
+  let youLookTX = 0;
+  let youLookTY = 0;
+  let youLookStart = 0;
+  let youLookKey = '';
   let youPhase = 0;
   let youRate = 1 / YOU_SWAY_PERIOD;
   let youLeanAmp = 0.75;
@@ -151,6 +165,48 @@ export function startIceGame(opts: {
     if (half < 0.54) return sign;
     if (half < 0.88) return sign * (1 - easeInOutCubic((half - 0.54) / 0.34));
     return 0;
+  }
+
+  function lookOffsetTo(cell: Cell): { x: number; y: number } {
+    const origin = tokenPos(laid, state.player);
+    const p = tokenPos(laid, cell);
+    const dx = p.x - origin.x;
+    const dy = p.y - origin.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const mag = Math.min(1, len / 80);
+    return { x: (dx / len) * mag * 7, y: (dy / len) * mag * 6 };
+  }
+
+  function pickYouLook(now: number): void {
+    youLookFromX = youLookX;
+    youLookFromY = youLookY;
+    youLookStart = now;
+    const boardOpts: { key: string; cell: Cell }[] = state.stars.map((s) => ({
+      key: `s${s.r}-${s.c}`,
+      cell: s,
+    }));
+    boardOpts.push({ key: 'door', cell: state.door });
+    const onScreen = youLookKey === 'screen' || youLookKey === '';
+    if (onScreen) {
+      const pick = boardOpts[Math.floor(Math.random() * boardOpts.length)]!;
+      youLookKey = pick.key;
+      const off = lookOffsetTo(pick.cell);
+      youLookTX = off.x;
+      youLookTY = off.y;
+      return;
+    }
+    if (Math.random() < 0.72 || boardOpts.length <= 1) {
+      youLookKey = 'screen';
+      youLookTX = 0;
+      youLookTY = 0;
+      return;
+    }
+    const pool = boardOpts.filter((o) => o.key !== youLookKey);
+    const pick = pool[Math.floor(Math.random() * pool.length)]!;
+    youLookKey = pick.key;
+    const off = lookOffsetTo(pick.cell);
+    youLookTX = off.x;
+    youLookTY = off.y;
   }
 
   rollYouIdle();
@@ -372,7 +428,7 @@ export function startIceGame(opts: {
     s.boxes.forEach((_, i) => {
       parts.push(`<div class="ice-box" id="ice-box-${i}"></div>`);
     });
-    parts.push(`<div class="ice-you" id="ice-you"><span class="you-rig"><span class="you-body"></span><span class="you-eye"></span><span class="you-pupil"></span></span></div>`);
+    parts.push(`<div class="ice-you" id="ice-you"><span class="you-rig"><span class="you-body"></span><span class="you-eye"><span class="you-pupil"></span></span></span></div>`);
     board.style.width = `${laid.gridW}px`;
     board.style.height = `${laid.gridH}px`;
     board.style.left = `${laid.originX}px`;
@@ -380,6 +436,8 @@ export function startIceGame(opts: {
     board.innerHTML = parts.join('');
     bindStarIdle();
     youRig = board.querySelector('.you-rig');
+    youEye = board.querySelector('.you-eye');
+    youPupil = board.querySelector('.you-pupil');
     placeTokens(s);
     const def = LEVELS[levelIndex]!;
     titleEl.textContent = `${def.id} ${def.title}`;
@@ -487,6 +545,36 @@ export function startIceGame(opts: {
       youSy += youSyVel * dt;
       const sx = 1 / youSy;
       youRig.style.transform = `rotate(${youLean.toFixed(2)}deg) scale(${sx.toFixed(4)}, ${youSy.toFixed(4)})`;
+      if (youEye) {
+        if (youNextBlinkAt === 0) youNextBlinkAt = now + mix(2.3, 5.5) * 1000;
+        if (youBlinkStart === 0 && now >= youNextBlinkAt) {
+          youBlinkStart = now;
+          if (!youDoubleBlink) {
+            pickYouLook(now);
+            youDoubleBlink = Math.random() < 0.22;
+          } else {
+            youDoubleBlink = false;
+          }
+        }
+        let lid = 1;
+        if (youBlinkStart > 0) {
+          const t = (now - youBlinkStart) / (YOU_BLINK_DUR * 1000);
+          if (t >= 1) {
+            youBlinkStart = 0;
+            youNextBlinkAt = youDoubleBlink ? now + 90 : now + mix(2.3, 5.5) * 1000;
+          } else {
+            lid = blinkLid(t);
+          }
+        }
+        youEye.style.transform = `scaleY(${lid.toFixed(3)})`;
+      }
+      if (youPupil) {
+        const saccade = youLookStart === 0 ? 1 : Math.min(1, (now - youLookStart) / 90);
+        const e = easeOutCubic(saccade);
+        youLookX = lerp(youLookFromX, youLookTX, e);
+        youLookY = lerp(youLookFromY, youLookTY, e);
+        youPupil.style.transform = `translate(${youLookX.toFixed(2)}px, ${youLookY.toFixed(2)}px)`;
+      }
     }
     const cycle = now / 1000 / STAR_IDLE_PERIOD;
     const glowBase = tune.glowOpacity / 100;
@@ -536,6 +624,16 @@ export function startIceGame(opts: {
 
   function easeOutCubic(t: number): number {
     return 1 - Math.pow(1 - t, 3);
+  }
+
+  function easeInCubic(t: number): number {
+    return t * t * t;
+  }
+
+  function blinkLid(t: number): number {
+    if (t < 0.3) return 1 - 0.93 * easeInCubic(t / 0.3);
+    if (t < 0.46) return 0.07;
+    return 0.07 + 0.93 * easeOutCubic((t - 0.46) / 0.54);
   }
 
   function easeInOutCubic(t: number): number {

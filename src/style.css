@@ -749,15 +749,20 @@ button:active {
   width: 76.07%;
   height: 46.3%;
   z-index: 1;
+  overflow: hidden;
+  transform-origin: 50% 50%;
   background-image: url('./assets/ui/you/eye.png');
+  will-change: transform;
 }
 
 .you-pupil {
-  left: 40.49%;
-  top: 18.52%;
-  width: 20.86%;
-  height: 22.22%;
+  left: 35.48%;
+  top: 26%;
+  width: 27.42%;
+  height: 48%;
   z-index: 2;
+  transform-origin: center center;
+  will-change: transform;
   background-image: url('./assets/ui/you/pupil.png');
 }
 
