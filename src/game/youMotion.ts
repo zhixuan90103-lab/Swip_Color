@@ -42,13 +42,15 @@ export type YouMotion = {
   bind: (root: HTMLElement | null, rig: HTMLElement | null, eye: HTMLElement | null, pupil: HTMLElement | null) => void;
   startSlide: (dir: Dir, now: number) => void;
   endSlide: () => void;
-  startHit: (dir: Dir, now: number, cells: number) => void;
+  startHit: (dir: Dir, now: number, cells: number, push?: boolean) => void;
   abort: () => void;
   tick: (now: number) => void;
 };
 
-export function hitAmpForCells(cells: number): number {
-  return cells >= 1 ? 1 : YOU_HIT_AMP_MIN;
+export function hitAmpForCells(cells: number, _push = false): number {
+  if (cells < 1) return YOU_HIT_AMP_MIN;
+  if (cells >= 4) return 1;
+  return YOU_HIT_AMP_MIN + (1 - YOU_HIT_AMP_MIN) * ((cells - 1) / 3);
 }
 
 export function hitTimesForAmp(amp: number): { inMs: number; backMs: number } {
@@ -60,8 +62,8 @@ export function hitTimesForAmp(amp: number): { inMs: number; backMs: number } {
   };
 }
 
-export function hitDurationMs(cells: number): number {
-  const { inMs, backMs } = hitTimesForAmp(hitAmpForCells(cells));
+export function hitDurationMs(cells: number, push = false): number {
+  const { inMs, backMs } = hitTimesForAmp(hitAmpForCells(cells, push));
   return inMs + backMs;
 }
 
@@ -220,12 +222,12 @@ export function createYouMotion(opts: { getLookTargets: () => LookTarget[] }): Y
     endSlide() {
       slideDir = null;
     },
-    startHit(dir, now, cells) {
+    startHit(dir, now, cells, push = false) {
       hitOn = true;
       hitDir = dir;
       hitT0 = now;
       hitFromRot = slideRot;
-      hitAmp = hitAmpForCells(cells);
+      hitAmp = hitAmpForCells(cells, push);
       const times = hitTimesForAmp(hitAmp);
       hitInMs = times.inMs;
       hitBackMs = times.backMs;
