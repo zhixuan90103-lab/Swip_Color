@@ -375,55 +375,98 @@ button:active {
 
 .ice-hud {
   position: relative;
-  z-index: 1;
-  display: flex;
+  z-index: 2;
+  flex: 0 0 60px;
+  height: 60px;
+  overflow: visible;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  grid-template-rows: 60px;
   align-items: center;
-  gap: 8px;
+  column-gap: 8px;
   pointer-events: auto;
 }
 
-.ice-title {
-  min-height: 36px;
-  padding: 7px 16px 7px 18px;
-  border-radius: 999px;
-  background: linear-gradient(#f3e0c0, #e4c894);
-  box-shadow:
-    inset 0 1px 0 #fff6e4,
-    0 3px 0 #c9a56a;
-  color: #9a5b32;
-  font-size: 16px;
+.ice-goal {
+  position: relative;
+  justify-self: center;
+  width: var(--hud-goal-w, 200px);
+  height: var(--hud-goal-h, 81px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 12px 18px 10px;
+  box-sizing: border-box;
+  transform: translate(var(--hud-goal-x, 0px), var(--hud-goal-y, 0px));
+}
+
+.ice-goal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('./assets/ui/hud-goal.png') center / 100% 100% no-repeat;
+  filter: drop-shadow(0 4px 3px rgba(70, 45, 28, 0.28));
+}
+
+.ice-goal-kicker {
+  margin: 0;
+  position: relative;
+  z-index: 1;
+  font-size: var(--hud-goal-font, 16px);
   font-weight: 800;
   letter-spacing: 0.04em;
+  color: #b07a4c;
+  transform: translate(var(--hud-title-x, 0px), var(--hud-title-y, 0px));
 }
 
 .ice-stars {
-  margin-left: auto;
+  position: relative;
+  z-index: 1;
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
 .hud-star {
-  width: 22px;
-  height: 22px;
-  background: #f4efe8;
-  clip-path: polygon(
-    50% 4%,
-    61% 38%,
-    98% 38%,
-    68% 59%,
-    79% 93%,
-    50% 72%,
-    21% 93%,
-    32% 59%,
-    2% 38%,
-    39% 38%
-  );
-  box-shadow: inset 0 0 0 2px #e8d9c4;
+  --hud-move: translate(0px, 0px);
+  --hud-star-scale: 1;
+  width: var(--hud-star, 45px);
+  height: var(--hud-star, 45px);
+  flex-shrink: 0;
+  overflow: visible;
+  background: url('./assets/ui/hud-star-off.png') center / contain no-repeat;
+  transform: var(--hud-move) scale(var(--hud-star-scale));
+}
+
+.hud-star[data-i='0'] {
+  --hud-move: translate(var(--hud-s0-x, 0px), var(--hud-s0-y, 0px));
+}
+
+.hud-star[data-i='1'] {
+  --hud-move: translate(var(--hud-s1-x, 0px), var(--hud-s1-y, 0px));
+}
+
+.hud-star[data-i='2'] {
+  --hud-move: translate(var(--hud-s2-x, 0px), var(--hud-s2-y, 0px));
 }
 
 .hud-star.is-on {
-  background: #f5c542;
-  box-shadow: none;
+  --hud-star-scale: calc(var(--hud-star-on, 45px) / var(--hud-star, 45px));
+  background-image: url('./assets/ui/star.png');
+  background-size: contain;
+  -webkit-mask-image: url('./assets/ui/hud-star-off.png');
+  mask-image: url('./assets/ui/hud-star-off.png');
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
 
 .hud-star.is-pop {
@@ -432,20 +475,69 @@ button:active {
 
 @keyframes hud-star-pop {
   0% {
-    transform: scale(0.72);
+    transform: var(--hud-move) scale(calc(var(--hud-star-scale) * 0.72));
   }
   55% {
-    transform: scale(1.16);
+    transform: var(--hud-move) scale(calc(var(--hud-star-scale) * 1.16));
   }
   100% {
-    transform: scale(1);
+    transform: var(--hud-move) scale(var(--hud-star-scale));
   }
 }
 
-.ice-restart,
-.ice-haptic,
-.ice-settings,
-.ice-next {
+.ice-hud-icon {
+  --hud-btn-move: translate(0px, 0px);
+  position: relative;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: transparent;
+  justify-self: center;
+  transform: var(--hud-btn-move);
+  overflow: visible;
+  touch-action: none;
+}
+
+.ice-hud-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: url('./assets/ui/hud-restart.png') center / 100% 100% no-repeat;
+  box-shadow: 0 3px 6px rgba(40, 55, 120, 0.38);
+  transform: scale(1);
+  transform-origin: center center;
+  pointer-events: none;
+}
+
+.ice-hud-icon.ice-hud-restart {
+  --hud-btn-move: translate(var(--hud-restart-x, 0px), var(--hud-restart-y, 0px));
+}
+
+.ice-hud-icon.ice-settings {
+  --hud-btn-move: translate(var(--hud-settings-x, 0px), var(--hud-settings-y, 0px));
+}
+
+.ice-hud-icon.ice-settings::before {
+  background-image: url('./assets/ui/hud-settings.png');
+}
+
+.ice-hud-icon.is-press::before,
+.ice-hud-icon:active::before {
+  transform: scale(1.12);
+}
+
+.ice-hud-icon:active {
+  background: none;
+  transform: var(--hud-btn-move);
+}
+
+.ice-next,
+.ice-over-actions .ice-restart {
   min-height: 36px;
   padding: 6px 14px;
   border-radius: 14px;
@@ -454,16 +546,6 @@ button:active {
   font-size: 13px;
   font-weight: 700;
   box-shadow: 0 3px 0 #2b5cb0;
-}
-
-.ice-haptic {
-  background: linear-gradient(#8ea0b8, #6b7c94);
-  box-shadow: 0 3px 0 #556274;
-}
-
-.ice-settings {
-  background: linear-gradient(#6b7c94, #556274);
-  box-shadow: 0 3px 0 #3d4858;
 }
 
 .ice-board-wrap {
@@ -978,7 +1060,7 @@ button:active {
 
 .tune-row {
   display: grid;
-  grid-template-columns: 32px 1fr 28px;
+  grid-template-columns: 40px 1fr 28px;
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
@@ -1004,6 +1086,31 @@ button:active {
   margin: 2px 0 8px;
   opacity: 0.55;
   line-height: 1.35;
+}
+
+.tune-section {
+  margin: 10px 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
+.tune-haptic {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.tune-haptic-btn {
+  min-height: 28px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: #3a4458;
+  color: #e8edf5;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .tune-reset {

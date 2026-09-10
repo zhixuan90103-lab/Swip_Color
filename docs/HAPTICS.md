@@ -63,7 +63,7 @@ customClass="BridgeViewController" customModule="App"
 
 5. 这两个 `.swift` 在 Xcode **Compile Sources** 里。
 6. JS 只通过 `src/utils/haptics.ts` 调插件；`jsName` / `registerPlugin` / `isPluginAvailable` 三者都是字符串 **`AdvancedHaptics`**。
-7. 在 **真机 App** 里点 HUD 的 **impact / transient**，马达有反馈。
+7. 在 **真机 App** 里打开 **设**，点震动 **轻 / 中 / 重**，马达有反馈。
 
 ### 0.4 真机上怎么确认（控制台）
 

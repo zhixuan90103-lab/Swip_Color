@@ -42,6 +42,29 @@ export type BoardTune = {
   glowY: number;
   glowOpacity: number;
   doorSize: number;
+  hudLevelW: number;
+  hudLevelH: number;
+  hudLevelX: number;
+  hudLevelY: number;
+  hudLevelFont: number;
+  hudGoalW: number;
+  hudGoalX: number;
+  hudGoalY: number;
+  hudGoalFont: number;
+  hudTitleX: number;
+  hudTitleY: number;
+  hudStar: number;
+  hudStarOn: number;
+  hudStar0X: number;
+  hudStar0Y: number;
+  hudStar1X: number;
+  hudStar1Y: number;
+  hudStar2X: number;
+  hudStar2Y: number;
+  hudRestartX: number;
+  hudRestartY: number;
+  hudSettingsX: number;
+  hudSettingsY: number;
 };
 
 export const TUNE_DEFAULT: BoardTune = {
@@ -73,6 +96,29 @@ export const TUNE_DEFAULT: BoardTune = {
   glowY: 5,
   glowOpacity: 60,
   doorSize: 70,
+  hudLevelW: 104,
+  hudLevelH: 42,
+  hudLevelX: 0,
+  hudLevelY: 0,
+  hudLevelFont: 13,
+  hudGoalW: 200,
+  hudGoalX: 0,
+  hudGoalY: 20,
+  hudGoalFont: 16,
+  hudTitleX: 0,
+  hudTitleY: -5,
+  hudStar: 40,
+  hudStarOn: 55,
+  hudStar0X: 0,
+  hudStar0Y: -1,
+  hudStar1X: 0,
+  hudStar1Y: -1,
+  hudStar2X: 0,
+  hudStar2Y: -1,
+  hudRestartX: 15,
+  hudRestartY: 20,
+  hudSettingsX: -15,
+  hudSettingsY: 20,
 };
 
 export const TUNE_RANGE = {
@@ -104,7 +150,34 @@ export const TUNE_RANGE = {
   glowY: { min: -24, max: 24 },
   glowOpacity: { min: 0, max: 100 },
   doorSize: { min: 20, max: 120 },
+  hudLevelW: { min: 60, max: 220 },
+  hudLevelH: { min: 24, max: 80 },
+  hudLevelX: { min: -48, max: 48 },
+  hudLevelY: { min: -48, max: 48 },
+  hudLevelFont: { min: 8, max: 22 },
+  hudGoalW: { min: 80, max: 280 },
+  hudGoalX: { min: -48, max: 48 },
+  hudGoalY: { min: -48, max: 80 },
+  hudGoalFont: { min: 6, max: 24 },
+  hudTitleX: { min: -40, max: 40 },
+  hudTitleY: { min: -40, max: 40 },
+  hudStar: { min: 16, max: 64 },
+  hudStarOn: { min: 16, max: 72 },
+  hudStar0X: { min: -24, max: 24 },
+  hudStar0Y: { min: -24, max: 24 },
+  hudStar1X: { min: -24, max: 24 },
+  hudStar1Y: { min: -24, max: 24 },
+  hudStar2X: { min: -24, max: 24 },
+  hudStar2Y: { min: -24, max: 24 },
+  hudRestartX: { min: -48, max: 48 },
+  hudRestartY: { min: -48, max: 48 },
+  hudSettingsX: { min: -48, max: 48 },
+  hudSettingsY: { min: -48, max: 48 },
 } as const;
+
+/** hud-goal.png 322×130 — keep 星底 scale uniform. */
+export const HUD_GOAL_ART_W = 322;
+export const HUD_GOAL_ART_H = 130;
 
 export type BoardLayout = {
   boardW: number;

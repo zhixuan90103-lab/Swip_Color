@@ -100,9 +100,9 @@ localStorage 键：`ice-board-tune-v12`。改默认时升版本，避免旧缓�
 
 ## 5. HUD
 
-局内 `#ice-stars` **三槽** `.hud-star[data-i=0|1|2]`。槽 0 / 1 = 两颗收集星飞入；槽 2 = 进门装饰星飞入。结算 overlay 等飞星结束再出，见 YOU-MOTION §7。
+局内 HUD 三列对称：左圆形重开 `hud-restart.png`、中 `hud-goal.png`（关卡 ID + 三槽星）、右圆形设置 `hud-settings.png`。空星 `hud-star-off.png`，点亮用棋盘 `star.png`。`#ice-stars` `.hud-star[data-i=0|1|2]`：槽 0 / 1 = 两颗收集星飞入；槽 2 = 进门装饰星飞入。结算 overlay 等飞星结束再出，见 YOU-MOTION §7。
 
-**设** 打开/关闭 `#tune-panel`（默认关）。`pointerdown` 截住以免走棋。
+**设** 打开/关闭 `#tune-panel`（默认关）。`pointerdown` 截住以免走棋。震动试按（轻/中/重）在调参面板底部。
 
 四角压暗：`.ice-app::after` 横竖线性叠层（边淡、角最深），不做屏幕圆角；只压背景，棋盘/HUD `z-index: 1`。
 

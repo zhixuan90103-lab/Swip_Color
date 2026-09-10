@@ -52,7 +52,7 @@
 4. **布局坐标 390×844**；禁止 `renderer.setSize(window.innerWidth,…)`  
 5. **UI 只挂 `#ui-root`**；禁止玩法 UI `position: fixed` 贴浏览器窗  
 6. **Pad 只改外层视口**，不改 `DESIGN_*`  
-7. **改 Swift 改 `plugins/native-haptics/` 或 `plugins/native-audio/`** 再 `ios:bootstrap`。震动见 `docs/HAPTICS.md`；音效见 `docs/AUDIO.md`。Capacitor 8 的 `SceneDelegate` 必须 `rootViewController = BridgeViewController()`。真机验收：局内「震」按钮。  
+7. **改 Swift 改 `plugins/native-haptics/` 或 `plugins/native-audio/`** 再 `ios:bootstrap`。震动见 `docs/HAPTICS.md`；音效见 `docs/AUDIO.md`。Capacitor 8 的 `SceneDelegate` 必须 `rootViewController = BridgeViewController()`。真机验收：设 → 震动 轻/中/重。  
 8. **无 WebGPU 则明确失败**，不静默 WebGL  
 9. **音效** 禁止热路径 `new Audio()` / 每发一次桥；iOS 生产禁止 WebAudio。  
 10. **闲置棋子** class `is-pooled`，禁止 HTML `hidden`。叠层只走 `boardStack.stackZ`（禁止 CSS 再写棋子 `z-index`）。脚影用投影图；禁止 `filter` 画在 `.you-rig`。格子占用是径向加亮，禁止 mix-blend。详见 `docs/VISUAL.md` §4、§7。  

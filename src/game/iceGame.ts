@@ -1,5 +1,7 @@
 import { haptics } from '../utils/haptics';
 import {
+  HUD_GOAL_ART_H,
+  HUD_GOAL_ART_W,
   TUNE_DEFAULT,
   TUNE_RANGE,
   layoutBoard,
@@ -33,54 +35,41 @@ import {
 import { createIrisWipe } from './irisWipe';
 import { PUSH_STEP_MS, createYouMotion, hitAmpForCells, hitDurationMs, type LookTarget } from './youMotion';
 
-const TUNE_KEY = 'ice-board-tune-v12';
+const TUNE_KEY = 'ice-board-tune-v16';
 const STEP_MS = FEEL2_DEFAULT.slideMs;
+const TUNE_KEYS = Object.keys(TUNE_DEFAULT) as (keyof BoardTune)[];
+const HUD_SLIDERS: { key: keyof BoardTune; label: string }[] = [
+  { key: 'hudGoalW', label: '星底' },
+  { key: 'hudGoalX', label: '星底X' },
+  { key: 'hudGoalY', label: '星底Y' },
+  { key: 'hudGoalFont', label: '关卡字' },
+  { key: 'hudTitleX', label: '文字X' },
+  { key: 'hudTitleY', label: '文字Y' },
+  { key: 'hudStar', label: '星大小' },
+  { key: 'hudStarOn', label: '亮星大' },
+  { key: 'hudStar0X', label: '星1X' },
+  { key: 'hudStar0Y', label: '星1Y' },
+  { key: 'hudStar1X', label: '星2X' },
+  { key: 'hudStar1Y', label: '星2Y' },
+  { key: 'hudStar2X', label: '星3X' },
+  { key: 'hudStar2Y', label: '星3Y' },
+  { key: 'hudRestartX', label: '重开X' },
+  { key: 'hudRestartY', label: '重开Y' },
+  { key: 'hudSettingsX', label: '设置X' },
+  { key: 'hudSettingsY', label: '设置Y' },
+];
 
 function loadTune(): BoardTune {
   try {
     const raw = localStorage.getItem(TUNE_KEY);
     if (!raw) return { ...TUNE_DEFAULT };
     const parsed = JSON.parse(raw) as Partial<BoardTune>;
-    return {
-      boardW: clampTune(parsed.boardW, TUNE_RANGE.boardW.min, TUNE_RANGE.boardW.max, TUNE_DEFAULT.boardW),
-      boardH: clampTune(parsed.boardH, TUNE_RANGE.boardH.min, TUNE_RANGE.boardH.max, TUNE_DEFAULT.boardH),
-      cell: clampTune(parsed.cell, TUNE_RANGE.cell.min, TUNE_RANGE.cell.max, TUNE_DEFAULT.cell),
-      gap: clampTune(parsed.gap, TUNE_RANGE.gap.min, TUNE_RANGE.gap.max, TUNE_DEFAULT.gap),
-      inset: clampTune(parsed.inset, TUNE_RANGE.inset.min, TUNE_RANGE.inset.max, TUNE_DEFAULT.inset),
-      cellOpacity: clampTune(
-        parsed.cellOpacity,
-        TUNE_RANGE.cellOpacity.min,
-        TUNE_RANGE.cellOpacity.max,
-        TUNE_DEFAULT.cellOpacity,
-      ),
-      shadowW: clampTune(parsed.shadowW, TUNE_RANGE.shadowW.min, TUNE_RANGE.shadowW.max, TUNE_DEFAULT.shadowW),
-      shadowH: clampTune(parsed.shadowH, TUNE_RANGE.shadowH.min, TUNE_RANGE.shadowH.max, TUNE_DEFAULT.shadowH),
-      boxSize: clampTune(parsed.boxSize, TUNE_RANGE.boxSize.min, TUNE_RANGE.boxSize.max, TUNE_DEFAULT.boxSize),
-      youSize: clampTune(parsed.youSize, TUNE_RANGE.youSize.min, TUNE_RANGE.youSize.max, TUNE_DEFAULT.youSize),
-      wallSize: clampTune(parsed.wallSize, TUNE_RANGE.wallSize.min, TUNE_RANGE.wallSize.max, TUNE_DEFAULT.wallSize),
-      boxX: clampTune(parsed.boxX, TUNE_RANGE.boxX.min, TUNE_RANGE.boxX.max, TUNE_DEFAULT.boxX),
-      boxY: clampTune(parsed.boxY, TUNE_RANGE.boxY.min, TUNE_RANGE.boxY.max, TUNE_DEFAULT.boxY),
-      youX: clampTune(parsed.youX, TUNE_RANGE.youX.min, TUNE_RANGE.youX.max, TUNE_DEFAULT.youX),
-      youY: clampTune(parsed.youY, TUNE_RANGE.youY.min, TUNE_RANGE.youY.max, TUNE_DEFAULT.youY),
-      youShadow: clampTune(parsed.youShadow, TUNE_RANGE.youShadow.min, TUNE_RANGE.youShadow.max, TUNE_DEFAULT.youShadow),
-      youShadowX: clampTune(parsed.youShadowX, TUNE_RANGE.youShadowX.min, TUNE_RANGE.youShadowX.max, TUNE_DEFAULT.youShadowX),
-      youShadowY: clampTune(parsed.youShadowY, TUNE_RANGE.youShadowY.min, TUNE_RANGE.youShadowY.max, TUNE_DEFAULT.youShadowY),
-      wallX: clampTune(parsed.wallX, TUNE_RANGE.wallX.min, TUNE_RANGE.wallX.max, TUNE_DEFAULT.wallX),
-      wallY: clampTune(parsed.wallY, TUNE_RANGE.wallY.min, TUNE_RANGE.wallY.max, TUNE_DEFAULT.wallY),
-      starSize: clampTune(parsed.starSize, TUNE_RANGE.starSize.min, TUNE_RANGE.starSize.max, TUNE_DEFAULT.starSize),
-      starX: clampTune(parsed.starX, TUNE_RANGE.starX.min, TUNE_RANGE.starX.max, TUNE_DEFAULT.starX),
-      starY: clampTune(parsed.starY, TUNE_RANGE.starY.min, TUNE_RANGE.starY.max, TUNE_DEFAULT.starY),
-      glowSize: clampTune(parsed.glowSize, TUNE_RANGE.glowSize.min, TUNE_RANGE.glowSize.max, TUNE_DEFAULT.glowSize),
-      glowX: clampTune(parsed.glowX, TUNE_RANGE.glowX.min, TUNE_RANGE.glowX.max, TUNE_DEFAULT.glowX),
-      glowY: clampTune(parsed.glowY, TUNE_RANGE.glowY.min, TUNE_RANGE.glowY.max, TUNE_DEFAULT.glowY),
-      glowOpacity: clampTune(
-        parsed.glowOpacity,
-        TUNE_RANGE.glowOpacity.min,
-        TUNE_RANGE.glowOpacity.max,
-        TUNE_DEFAULT.glowOpacity,
-      ),
-      doorSize: clampTune(parsed.doorSize, TUNE_RANGE.doorSize.min, TUNE_RANGE.doorSize.max, TUNE_DEFAULT.doorSize),
-    };
+    const out = { ...TUNE_DEFAULT };
+    for (const key of TUNE_KEYS) {
+      const range = TUNE_RANGE[key];
+      out[key] = clampTune(parsed[key], range.min, range.max, TUNE_DEFAULT[key]);
+    }
+    return out;
   } catch {
     return { ...TUNE_DEFAULT };
   }
@@ -144,15 +133,16 @@ export function startIceGame(opts: {
   root.className = 'ice-app';
   root.innerHTML = `
     <header class="ice-hud">
-      <div class="ice-title" id="ice-title">1 撞停</div>
-      <div class="ice-stars" id="ice-stars" aria-hidden="true">
-        <span class="hud-star" data-i="0"></span>
-        <span class="hud-star" data-i="1"></span>
-        <span class="hud-star" data-i="2"></span>
+      <button type="button" class="ice-hud-icon ice-hud-restart" id="ice-restart" aria-label="重开"></button>
+      <div class="ice-goal">
+        <p class="ice-goal-kicker" id="ice-title">Level 1</p>
+        <div class="ice-stars" id="ice-stars" aria-hidden="true">
+          <span class="hud-star" data-i="0"></span>
+          <span class="hud-star" data-i="1"></span>
+          <span class="hud-star" data-i="2"></span>
+        </div>
       </div>
-      <button type="button" class="ice-restart" id="ice-restart">重开</button>
-      <button type="button" class="ice-haptic" id="haptic-tap">震</button>
-      <button type="button" class="ice-settings" id="ice-settings">设</button>
+      <button type="button" class="ice-hud-icon ice-settings" id="ice-settings" aria-label="设置"></button>
     </header>
     <div class="ice-board-wrap">
       <div class="ice-board-shell">
@@ -318,6 +308,21 @@ export function startIceGame(opts: {
         <b id="tune-doorSize-v"></b>
       </label>
       <p class="tune-hint">X右正 Y下正，相对格子中心</p>
+      <p class="tune-section">顶部 HUD</p>
+      ${HUD_SLIDERS.map(
+        ({ key, label }) => `
+      <label class="tune-row">
+        <span>${label}</span>
+        <input id="tune-${key}" type="range" min="${TUNE_RANGE[key].min}" max="${TUNE_RANGE[key].max}" step="1" />
+        <b id="tune-${key}-v"></b>
+      </label>`,
+      ).join('')}
+      <p class="tune-section">震动</p>
+      <div class="tune-haptic">
+        <button type="button" class="tune-haptic-btn" id="haptic-light" data-style="light">轻</button>
+        <button type="button" class="tune-haptic-btn" id="haptic-medium" data-style="medium">中</button>
+        <button type="button" class="tune-haptic-btn" id="haptic-heavy" data-style="heavy">重</button>
+      </div>
       <button type="button" class="tune-reset" id="tune-reset">恢复默认</button>
     </aside>
   `;
@@ -510,7 +515,7 @@ export function startIceGame(opts: {
     youMotion.bind(youEl, youEl.querySelector('.you-rig'), youEl.querySelector('.you-eye'), youEl.querySelector('.you-pupil'));
     placeTokens(s);
     const def = LEVELS[levelIndex]!;
-    titleEl.textContent = `${def.id} ${def.title}`;
+    titleEl.textContent = `Level ${def.id}`;
     hintEl.textContent = def.hint;
     starsEl.querySelectorAll('.hud-star').forEach((el, i) => {
       el.classList.toggle('is-on', i < s.collected);
@@ -885,40 +890,32 @@ export function startIceGame(opts: {
     root.style.setProperty('--ice-glow-y', `${tune.glowY}px`);
     root.style.setProperty('--ice-glow-opacity', String(tune.glowOpacity / 100));
     root.style.setProperty('--ice-door', `${tune.doorSize}px`);
+    const goalH = (tune.hudGoalW * HUD_GOAL_ART_H) / HUD_GOAL_ART_W;
+    root.style.setProperty('--hud-goal-w', `${tune.hudGoalW}px`);
+    root.style.setProperty('--hud-goal-h', `${goalH.toFixed(2)}px`);
+    root.style.setProperty('--hud-goal-x', `${tune.hudGoalX}px`);
+    root.style.setProperty('--hud-goal-y', `${tune.hudGoalY}px`);
+    root.style.setProperty('--hud-goal-font', `${tune.hudGoalFont}px`);
+    root.style.setProperty('--hud-title-x', `${tune.hudTitleX}px`);
+    root.style.setProperty('--hud-title-y', `${tune.hudTitleY}px`);
+    root.style.setProperty('--hud-star', `${tune.hudStar}px`);
+    root.style.setProperty('--hud-star-on', `${tune.hudStarOn}px`);
+    root.style.setProperty('--hud-restart-x', `${tune.hudRestartX}px`);
+    root.style.setProperty('--hud-restart-y', `${tune.hudRestartY}px`);
+    root.style.setProperty('--hud-settings-x', `${tune.hudSettingsX}px`);
+    root.style.setProperty('--hud-settings-y', `${tune.hudSettingsY}px`);
+    root.style.setProperty('--hud-s0-x', `${tune.hudStar0X}px`);
+    root.style.setProperty('--hud-s0-y', `${tune.hudStar0Y}px`);
+    root.style.setProperty('--hud-s1-x', `${tune.hudStar1X}px`);
+    root.style.setProperty('--hud-s1-y', `${tune.hudStar1Y}px`);
+    root.style.setProperty('--hud-s2-x', `${tune.hudStar2X}px`);
+    root.style.setProperty('--hud-s2-y', `${tune.hudStar2Y}px`);
   }
 
   function syncTuneUi(): void {
-    ([
-      'boardW',
-      'boardH',
-      'cell',
-      'gap',
-      'inset',
-      'cellOpacity',
-      'shadowW',
-      'shadowH',
-      'boxSize',
-      'youSize',
-      'wallSize',
-      'boxX',
-      'boxY',
-      'youX',
-      'youY',
-      'youShadow',
-      'youShadowX',
-      'youShadowY',
-      'wallX',
-      'wallY',
-      'starSize',
-      'starX',
-      'starY',
-      'glowSize',
-      'glowX',
-      'glowY',
-      'glowOpacity',
-      'doorSize',
-    ] as const).forEach((key) => {
-      const input = root.querySelector(`#tune-${key}`) as HTMLInputElement;
+    TUNE_KEYS.forEach((key) => {
+      const input = root.querySelector(`#tune-${key}`) as HTMLInputElement | null;
+      if (!input) return;
       input.value = String(tune[key]);
       root.querySelector(`#tune-${key}-v`)!.textContent = String(tune[key]);
     });
@@ -961,7 +958,8 @@ export function startIceGame(opts: {
       key === 'glowX' ||
       key === 'glowY' ||
       key === 'glowOpacity' ||
-      key === 'doorSize'
+      key === 'doorSize' ||
+      key.startsWith('hud')
     ) {
       applyTuneCss();
       syncTuneUi();
@@ -970,34 +968,9 @@ export function startIceGame(opts: {
     }
     commitTune();
   };
-  root.querySelector('#tune-boardW')!.addEventListener('input', onTuneInput('boardW'));
-  root.querySelector('#tune-boardH')!.addEventListener('input', onTuneInput('boardH'));
-  root.querySelector('#tune-cell')!.addEventListener('input', onTuneInput('cell'));
-  root.querySelector('#tune-gap')!.addEventListener('input', onTuneInput('gap'));
-  root.querySelector('#tune-inset')!.addEventListener('input', onTuneInput('inset'));
-  root.querySelector('#tune-cellOpacity')!.addEventListener('input', onTuneInput('cellOpacity'));
-  root.querySelector('#tune-shadowW')!.addEventListener('input', onTuneInput('shadowW'));
-  root.querySelector('#tune-shadowH')!.addEventListener('input', onTuneInput('shadowH'));
-  root.querySelector('#tune-boxSize')!.addEventListener('input', onTuneInput('boxSize'));
-  root.querySelector('#tune-youSize')!.addEventListener('input', onTuneInput('youSize'));
-  root.querySelector('#tune-wallSize')!.addEventListener('input', onTuneInput('wallSize'));
-  root.querySelector('#tune-boxX')!.addEventListener('input', onTuneInput('boxX'));
-  root.querySelector('#tune-boxY')!.addEventListener('input', onTuneInput('boxY'));
-  root.querySelector('#tune-youX')!.addEventListener('input', onTuneInput('youX'));
-  root.querySelector('#tune-youY')!.addEventListener('input', onTuneInput('youY'));
-  root.querySelector('#tune-youShadow')!.addEventListener('input', onTuneInput('youShadow'));
-  root.querySelector('#tune-youShadowX')!.addEventListener('input', onTuneInput('youShadowX'));
-  root.querySelector('#tune-youShadowY')!.addEventListener('input', onTuneInput('youShadowY'));
-  root.querySelector('#tune-wallX')!.addEventListener('input', onTuneInput('wallX'));
-  root.querySelector('#tune-wallY')!.addEventListener('input', onTuneInput('wallY'));
-  root.querySelector('#tune-starSize')!.addEventListener('input', onTuneInput('starSize'));
-  root.querySelector('#tune-starX')!.addEventListener('input', onTuneInput('starX'));
-  root.querySelector('#tune-starY')!.addEventListener('input', onTuneInput('starY'));
-  root.querySelector('#tune-glowSize')!.addEventListener('input', onTuneInput('glowSize'));
-  root.querySelector('#tune-glowX')!.addEventListener('input', onTuneInput('glowX'));
-  root.querySelector('#tune-glowY')!.addEventListener('input', onTuneInput('glowY'));
-  root.querySelector('#tune-glowOpacity')!.addEventListener('input', onTuneInput('glowOpacity'));
-  root.querySelector('#tune-doorSize')!.addEventListener('input', onTuneInput('doorSize'));
+  TUNE_KEYS.forEach((key) => {
+    root.querySelector(`#tune-${key}`)?.addEventListener('input', onTuneInput(key));
+  });
   root.querySelector('#tune-reset')!.addEventListener('click', (e) => {
     e.stopPropagation();
     Object.assign(tune, TUNE_DEFAULT);
@@ -1012,7 +985,17 @@ export function startIceGame(opts: {
     e.stopPropagation();
     tunePanel.classList.toggle('hidden');
   };
-  root.querySelector('#ice-settings')!.addEventListener('click', toggleTune);
+  const settingsBtn = root.querySelector('#ice-settings') as HTMLButtonElement;
+  settingsBtn.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    settingsBtn.classList.add('is-press');
+    toggleTune(e);
+  });
+  const endSettingsPress = () => settingsBtn.classList.remove('is-press');
+  settingsBtn.addEventListener('pointerup', endSettingsPress);
+  settingsBtn.addEventListener('pointercancel', endSettingsPress);
+  settingsBtn.addEventListener('click', (e) => e.preventDefault());
   root.querySelector('#tune-close')!.addEventListener('click', toggleTune);
 
   const wrap = root.querySelector('.ice-board-wrap') as HTMLElement;
@@ -1056,10 +1039,42 @@ export function startIceGame(opts: {
     });
   };
 
-  root.querySelector('#ice-restart')!.addEventListener('click', (e) => {
+  const restartBtn = root.querySelector('#ice-restart') as HTMLButtonElement;
+  const RESTART_SLOP = 32;
+  let restartArmed = false;
+  const inRestartZone = (x: number, y: number) => {
+    const r = restartBtn.getBoundingClientRect();
+    return (
+      x >= r.left - RESTART_SLOP &&
+      x <= r.right + RESTART_SLOP &&
+      y >= r.top - RESTART_SLOP &&
+      y <= r.bottom + RESTART_SLOP
+    );
+  };
+  restartBtn.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
-    restart();
+    e.preventDefault();
+    restartArmed = true;
+    restartBtn.classList.add('is-press');
+    restartBtn.setPointerCapture(e.pointerId);
   });
+  restartBtn.addEventListener('pointermove', (e) => {
+    if (!restartBtn.hasPointerCapture(e.pointerId)) return;
+    restartArmed = inRestartZone(e.clientX, e.clientY);
+    restartBtn.classList.toggle('is-press', restartArmed);
+  });
+  restartBtn.addEventListener('pointerup', (e) => {
+    e.stopPropagation();
+    const ok = restartArmed && inRestartZone(e.clientX, e.clientY);
+    restartArmed = false;
+    restartBtn.classList.remove('is-press');
+    if (ok) restart();
+  });
+  restartBtn.addEventListener('pointercancel', () => {
+    restartArmed = false;
+    restartBtn.classList.remove('is-press');
+  });
+  restartBtn.addEventListener('click', (e) => e.preventDefault());
   root.querySelector('#ice-again')!.addEventListener('click', (e) => {
     e.stopPropagation();
     restart();
@@ -1155,9 +1170,12 @@ export function startIceGame(opts: {
     }
   }
 
-  root.querySelector('#haptic-tap')!.addEventListener('click', (e) => {
-    e.stopPropagation();
-    void haptics.impact('medium');
+  root.querySelectorAll('.tune-haptic-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const style = (btn as HTMLElement).dataset.style as 'light' | 'medium' | 'heavy';
+      void haptics.impact(style);
+    });
   });
 
   const swipe = attachSwipeInput({
