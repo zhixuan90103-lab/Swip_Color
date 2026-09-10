@@ -30,7 +30,7 @@
 | 出题知识 | `docs/LEVEL-KNOWLEDGE.md` |
 | 十五关 | `docs/LEVEL-TEMPLATES.md` · `src/game/levels.ts` |
 | 画面/资源 | `docs/VISUAL.md` · `src/game/boardLayout.ts` · `src/assets/ui/` |
-| 运动 juice | `docs/YOU-MOTION.md` · `src/game/youMotion.ts` · `boxMotion.ts` · `cellAdd.ts` · `starPickup.ts` |
+| 运动 juice | `docs/YOU-MOTION.md` · `src/game/youMotion.ts` · `boxMotion.ts` · `cellAdd.ts` · `starPickup.ts` · `irisWipe.ts` |
 | 对象池 | `src/game/objectPool.ts`（`.is-pooled` 停车，不用 `hidden`） |
 | 棋盘层级 | `src/game/boardStack.ts`（`stackZ` 写 `z-index`；冰 0、提亮 1、角色 9） |
 | 文档索引 | `docs/README.md` |
@@ -75,8 +75,8 @@ npm run ios
 ## 业务怎么加
 
 - 玩法：改 `src/game/*`，规则以 `docs/ICE-PUZZLE.md` 为准  
-- 画面：改 `src/assets/ui/`、`public/ui/table-bg.png`、`boardLayout.ts` 的 `TUNE_DEFAULT`；规范以 `docs/VISUAL.md` 为准  
-- 角色/场面 juice：改 `youMotion.ts` / `boxMotion.ts` / `cellAdd.ts` / `starPickup.ts`；规范以 `docs/YOU-MOTION.md` 为准  
+- 画面：改 `src/assets/ui/`、`public/ui/table-bg.png`、`boardLayout.ts` 的 `TUNE_DEFAULT`（含 HUD）；规范以 `docs/VISUAL.md` 为准  
+- 角色/场面 juice：改 `youMotion.ts` / `boxMotion.ts` / `cellAdd.ts` / `starPickup.ts` / `irisWipe.ts`；规范以 `docs/YOU-MOTION.md` 为准  
 - 对象池 / 叠层：改 `objectPool.ts` / `boardStack.ts` / `.ice-piece` CSS；规范以 `docs/VISUAL.md` §4、§7 为准  
 - 出手：手感 2（`swipeInput.ts` + `FEEL2_DEFAULT`），不要另写薄滑动替换它  
 - 保留：adapt / create-renderer / haptics / plugins / `base`  

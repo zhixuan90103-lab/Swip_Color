@@ -580,10 +580,11 @@ button:active {
   border-style: solid;
   border-width: var(--board-rim);
   border-radius: 0;
-  background: transparent;
+  background-color: #aac1de;
+  background-clip: padding-box;
   box-shadow: none;
   border-image-source: url('./assets/ui/board-9slice.png');
-  border-image-slice: 132 fill;
+  border-image-slice: 132;
   border-image-width: var(--board-rim);
   border-image-repeat: stretch;
 }

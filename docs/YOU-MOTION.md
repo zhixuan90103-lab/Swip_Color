@@ -1,6 +1,6 @@
 # 角色与场面 juice
 
-日期：**2026-09-09**。本文是**运动 / juice 真源**。  
+日期：**2026-09-10**。本文是**运动 / juice 真源**。  
 玩法以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) 为准。贴图 / 层级以 [VISUAL.md](./VISUAL.md) 为准。  
 Juice **不改模拟**：格点先到位，再播表现。`prefers-reduced-motion: reduce` 时停动画。
 
@@ -17,7 +17,7 @@ Juice **不改模拟**：格点先到位，再播表现。`prefers-reduced-motio
 | `src/game/objectPool.ts` | 复用；闲置 class `is-pooled`，禁止 `hidden` |
 | `src/game/boardStack.ts` | 地板冰 0 / 提亮 1；门 3 星 4 箱 5 角色 9。JS 写 z-index |
 
-改手感：改对应 ts **导出常量**，并改本文同一行。禁止在 `iceGame.ts` 再堆一套默认。
+改手感：改对应 ts **导出常量**，并改本文同一行。禁止在 `iceGame.ts` 再堆一套默认。HUD 形态 / 调参默认以 [VISUAL.md](./VISUAL.md) 与 `TUNE_DEFAULT` 为准。
 
 ---
 
@@ -125,11 +125,24 @@ Juice **不改模拟**：格点先到位，再播表现。`prefers-reduced-motio
 | 滑到门格 | **当下**终点星同样起飞 → HUD 槽 2 |
 | 结算 | 等**全部飞星结束** + HUD 弹出（约 280ms）再出 overlay |
 
-HUD 三槽。评价公式仍是规则里的 **1 + 吃到的星**，见 ICE-PUZZLE。
+HUD 三槽。评价公式仍是规则里的 **1 + 吃到的星**，见 ICE-PUZZLE。  
+结算卡：全屏蒙黑 + 奶油面板 + 同款三星 + 圆形重开 / 绿色下一关。形态见 [VISUAL.md](./VISUAL.md) §5。
 
 ---
 
-## 8. 数值一览
+## 8. 关卡转场（镂空星）
+
+重开、下一关、第 15 关「再来一遍」走 `irisWipe.ts`。首次进游戏不播。
+
+1. 全黑遮罩中间镂空本关星星形；先偏 **60°**，缩小到全黑时回正。遮罩外圈 Alpha 0→1，**孔里不蒙黑**。  
+2. 全黑停 **500ms**，其间换关。  
+3. 再偏 60°，反向转到正着同时放大；遮罩 Alpha 1→0。
+
+`prefers-reduced-motion: reduce` 时跳过动画，直接换关。
+
+---
+
+## 9. 数值一览
 
 | 常量 | 值 |
 |------|-----|

@@ -1,6 +1,6 @@
 # 画面与资源
 
-日期：**2026-09-09**。本文是**表现层真源**（贴图、托盘布局、调参、层级）。玩法规则仍以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) 为准。运动 / juice 以 [YOU-MOTION.md](./YOU-MOTION.md) 为准。
+日期：**2026-09-10**。本文是**表现层真源**（贴图、托盘布局、调参、层级、局内 HUD / 结算）。玩法规则仍以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) 为准。运动 / juice 以 [YOU-MOTION.md](./YOU-MOTION.md) 为准。
 
 实现：`src/game/boardLayout.ts`（槽位/托盘）· `iceGame.ts`（DOM、调参）· juice 见 [YOU-MOTION.md](./YOU-MOTION.md) · `src/style.css`。
 
@@ -19,14 +19,19 @@
 | 角色 | 运行时文件 | 接到哪 |
 |------|------------|--------|
 | 桌面背景 | `public/ui/table-bg.png` | `iceGame.ts`：`BASE_URL + 'ui/table-bg.png'`，`cover` |
-| 九宫托盘 | `src/assets/ui/board-9slice.png` | `.ice-board-frame` `border-image`（slice **132**，边宽 **44px**） |
+| 九宫托盘 | `src/assets/ui/board-9slice.png` | `.ice-board-frame` 边框 `border-image`（slice **132**，边宽 **44px**，**不要 fill**）。井内实地 `#aac1de`，避免九宫接缝线 |
 | 冰砖浅 | `src/assets/ui/ice-a.png` | `.is-ice-a`，`(r+c)` 偶数 |
 | 冰砖深 | `src/assets/ui/ice-b.png` | `.is-ice-b`，奇数 |
 | 墙/石头 | `src/assets/ui/wall.png` | `.wall-sprite` |
 | 石头投影 | `src/assets/ui/wall-shadow.png` | `.ground-blob.is-wall-blob`（217×239 透明底） |
 | 箱 | `src/assets/ui/crate.png` | `.box-rig` |
 | 箱投影 | `src/assets/ui/crate-shadow.png` | `.ground-blob.is-box-blob`（189×218 透明底） |
-| 星 | `src/assets/ui/star.png` | `.ice-star` |
+| 星 | `src/assets/ui/star.png` | `.ice-star`；HUD / 结算点亮星（用空星外形做 mask） |
+| HUD 重开 | `src/assets/ui/hud-restart.png` | `.ice-hud-icon::before` |
+| HUD 设置 | `src/assets/ui/hud-settings.png` | `.ice-hud-icon.ice-settings::before` |
+| HUD 星底 | `src/assets/ui/hud-goal.png` | `.ice-goal::before`（322×130，宽滑条、高按贴图等比） |
+| HUD 空星 | `src/assets/ui/hud-star-off.png` | `.hud-star` |
+| HUD 关卡条（备用） | `src/assets/ui/hud-level.png` | 现行 HUD 不用 |
 | 终点垫 | `src/assets/ui/door.png` | `.ice-door`（红色齿边垫，叠在冰格上，`contain`） |
 | 终点星 | 同 `star.png` | 门格装饰星：泛光 + 待机浮，不要投影；进门飞 HUD 第三槽，不计入收集 |
 | 角色整图（备份） | `src/assets/ui/you.png` | 局内**不用** |
@@ -63,9 +68,9 @@
 | 角色影 / 影X / 影Y | 角色投影贴图宽（高按 180×109 同比）；相对脚底偏移（X 右正，Y 下正） |
 | 光大小/X/Y/透明 | 星星格中心黄色泛光 |
 
-现行默认见 `TUNE_DEFAULT`（宽 360、高 366、格子 60、缝 2、框距 -20、冰砖透明 25、箱 66 / 箱X 1 / 箱Y -2、角色 66 / 角Y -10、角色影 50 / 影X 0 / 影Y 7、石头 66、星 70 / 星Y -15、光 60 / 光Y 5 / 光透明 60、终点 70）。
+现行默认见 `TUNE_DEFAULT`（棋盘：宽 360、高 366、格子 60、缝 2、框距 -20、冰砖透明 25、箱 66 / 箱X 1 / 箱Y -2、角色 66 / 角Y -10、角色影 50 / 影X 0 / 影Y 7、石头 66、星 70 / 星Y -15、光 60 / 光Y 5 / 光透明 60、终点 70。HUD：星底 200 / Y 20、关卡字 16 / 文字 Y -5、空星 40、亮星 55、星 Y -1、重开 15,20、设置 -15,20）。
 
-localStorage 键：`ice-board-tune-v12`。改默认时升版本，避免旧缓存盖住新值。
+localStorage 键：`ice-board-tune-v16`。改默认时升版本，避免旧缓存盖住新值。
 
 5×5 → 托盘 360×366；5×6 → 约 423×366；6×6 → 约 423×429。超出中间区域则 `fitBoard` 整体 `scale` 放下，相对比例不变。
 
@@ -100,11 +105,23 @@ localStorage 键：`ice-board-tune-v12`。改默认时升版本，避免旧缓�
 
 ## 5. HUD
 
-局内 HUD 三列对称：左圆形重开 `hud-restart.png`、中 `hud-goal.png`（关卡 ID + 三槽星）、右圆形设置 `hud-settings.png`。空星 `hud-star-off.png`，点亮用棋盘 `star.png`。`#ice-stars` `.hud-star[data-i=0|1|2]`：槽 0 / 1 = 两颗收集星飞入；槽 2 = 进门装饰星飞入。结算 overlay 等飞星结束再出，见 YOU-MOTION §7。
+局内 HUD **三列对称**，占位锁死 **60px 高**（`flex: 0 0 60px`）。拧星底大小只往外画，**不挤棋盘**。
 
-**设** 打开/关闭 `#tune-panel`（默认关）。`pointerdown` 截住以免走棋。震动试按（轻/中/重）在调参面板底部。
+| 列 | 内容 |
+|----|------|
+| 左 | 圆形重开 `hud-restart.png`。按下放大 1.12；**抬手**才重开。滑出按钮外约 32px 再抬手 = 取消 |
+| 中 | `hud-goal.png` 星底（宽滑条、高按 322×130 等比）+ `Level n` + 三槽星 |
+| 右 | 圆形设置 `hud-settings.png`。**按下立刻**开关调参。按下只放大贴图，阴影走 `box-shadow`（禁止按钮本体 `filter` + `scale`，WK 会切出大蓝圆） |
 
-四角压暗：`.ice-app::after` 横竖线性叠层（边淡、角最深），不做屏幕圆角；只压背景，棋盘/HUD `z-index: 1`。
+空星 `hud-star-off.png`。点亮用 `star.png`，mask 成空星外形；占位永远按「星大小」，「亮星大」只 `scale` 画面，不挤字和邻星。
+
+`#ice-stars` `.hud-star[data-i=0|1|2]`：槽 0 / 1 = 两颗收集星飞入；槽 2 = 进门装饰星飞入。
+
+调参面板「顶部 HUD」：星底 / 星底XY / 关卡字 / 文字XY / 星大小 / 亮星大 / 三星 XY / 重开 XY / 设置 XY。震动轻/中/重在面板底部。
+
+**结算** `#ice-overlay`：全屏黑 `rgba(0,0,0,0.55)`；奶油卡 + `Level n` + 同款三星 + 圆形重开 + 绿色「下一关」（第 15 关「再来一遍」）。等飞星结束再出，见 YOU-MOTION §7。
+
+四角压暗：`.ice-app::after` 横竖线性叠层（边淡、角最深），不做屏幕圆角。
 
 ---
 
@@ -117,7 +134,7 @@ localStorage 键：`ice-board-tune-v12`。改默认时升版本，避免旧缓�
 | `objectPool.ts` | 复用；停车 class `is-pooled` |
 | `boardStack.ts` | `Z_LAYER`、`placeBoardItem` |
 | `youMotion.ts` / `boxMotion.ts` / `cellAdd.ts` / `starPickup.ts` | juice，见 YOU-MOTION |
-| `src/style.css` | 贴图、叠层公式、脚影、提亮 |
+| `src/style.css` | 贴图、叠层公式、脚影、提亮、HUD / 结算 |
 | `src/assets/ui/*` | 运行时棋子/托盘 |
 | `public/ui/table-bg.png` | 桌面背景 |
 
@@ -134,5 +151,6 @@ localStorage 键：`ice-board-tune-v12`。改默认时升版本，避免旧缓�
 | 滑动时像两个角色 | 复制 `body.png` 当投影 | `.ground-blob.is-you-blob` 脚底接触椭圆，贴在身体底部曲线 |
 | 投影横切加黑 / 被裁 / 滑动闪没 | 任何棋子上的 `filter: drop-shadow`（含静止 `.box-cast`） | 接地只有 `.ground-blob`。`filter` 在 WKWebView 里会按合成层裁切，画成黑带。星只用泛光 |
 | 走过格子发黑方块 / 切格一闪 | `mix-blend`、`overflow:hidden` 切占用层、瞬间 opacity 打满再 transition | `.ice-cell-add` 径向**加亮**；淡入淡出同一条 opacity；冰格 overflow 可见 |
+| HUD 圆钮按下切出半个大蓝圆 | 按钮本体同时 `filter` + `transform: scale`（`#stage` overflow hidden） | 贴图和阴影在 `::before`；按下只放大 `::before`；阴影 `box-shadow` |
 
 接地跟**平面形状**：圆角色用椭圆，方箱子/石头用圆角方板 + `box-shadow`。都走 `.ground-blob`，禁止 `filter: drop-shadow`。星只有黄色泛光。数字见 YOU-MOTION §6 / §8。
