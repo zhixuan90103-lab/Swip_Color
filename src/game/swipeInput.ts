@@ -1,5 +1,5 @@
 /**
- * 手势层。手感2：一次按下一个手势，方向只看本次 Armed 原点位移。
+ * 手势层。一次按下只出手一步；方向看按下点到现在的主轴符号。
  * 设计见 docs/SWIPE-INTENT.md。
  */
 
@@ -13,11 +13,7 @@ import {
   LIGHT_SPEED_MUL,
   POST_FIRE_UP_GUARD_MS,
 } from './swipeFlick';
-import {
-  shouldInvalidOnLift,
-  shouldLatchSlowDrag,
-  type Axis,
-} from './swipeAxis';
+import { shouldInvalidOnLift, shouldLatchSlowDrag } from './swipeAxis';
 import {
   clientInStage,
   clientInSystemEdge,
@@ -33,7 +29,6 @@ export type SwipeInputOptions = {
   canQueue?: () => boolean;
   onMove: (dir: Dir) => void;
   onInvalid?: (dir: Dir) => void;
-  getLegal?: () => ((dir: Dir) => boolean) | undefined;
   onBackgroundAbort?: () => void;
   onGestureCommit?: () => void;
 };
@@ -62,13 +57,10 @@ type Gesture = {
   y: number;
   lastT: number;
   armed: boolean;
-  armTs: number;
-  samples: number;
   fired: boolean;
   slow: boolean;
   ignore: boolean;
   light: boolean;
-  axis: Axis | null;
   vel: ReturnType<typeof createVelocityWindow>;
 };
 
@@ -116,7 +108,6 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     if (feel.scheme !== 2) return;
     const dx = g.x - g.ox;
     const dy = g.y - g.oy;
-    const slop = scalePx(feel.slopPx);
     const lightMul = g.light ? LIGHT_COMMIT_MUL : 1;
     const commit = scalePx(feel.commitPx) * lightMul;
     const blocked = Boolean(isBlocked?.());
@@ -129,18 +120,13 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     const d = decideFlick({
       dx,
       dy,
-      axis: g.axis,
-      slop,
       commit,
       axisRatio: feel.axisRatio,
       speed,
       speedMin,
       slow: g.slow,
       fired: g.fired,
-      legal: undefined,
-      allowFork: false,
     });
-    if (d.axis !== undefined) g.axis = d.axis;
     if (d.fire === null) return;
     if (blocked) {
       if ((canQueue?.() ?? true) && pending === null) {
@@ -165,13 +151,10 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
       y: e.clientY,
       lastT: e.timeStamp,
       armed: false,
-      armTs: e.timeStamp,
-      samples: 0,
       fired: false,
       slow: false,
       ignore: inSystemEdge(e.clientY),
       light: isLightPressure(e.pressure, e.pointerType),
-      axis: null,
       vel,
     };
     try {
@@ -204,11 +187,8 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
       const dist = Math.max(Math.abs(x - g.ox), Math.abs(y - g.oy));
       if (dist < slop) return;
       g.armed = true;
-      g.armTs = t;
-      g.samples = 0;
       return;
     }
-    g.samples += 1;
     tryFlick();
   };
 

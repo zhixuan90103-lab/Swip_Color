@@ -8,7 +8,10 @@ import {
   type SegmentDecision,
 } from './swipeAxis';
 
-/** 手感2：甩动。2048 默认。每次按下只一步；慢滑锁死后本按下不再出手。 */
+/**
+ * 2048 手感 2 的旧判定（锁轴、速度同号、合法向分叉）。
+ * 冰面现行出手走 `swipeFlick.ts`，不要从这里再接 `getLegal`。
+ */
 export type Feel2Input = {
   dx: number;
   dy: number;

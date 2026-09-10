@@ -1,7 +1,7 @@
 # 检索计划：滑动意图识别
 
-日期：**2026-09-10**。配套玩法真源：[ICE-PUZZLE.md](./ICE-PUZZLE.md) §4。出手实现：`src/game/swipeInput.ts` · `swipeFeel2.ts` · `swipeAxis.ts` · `swipeVelocity.ts` · `FEEL2_DEFAULT`。  
-本文是检索过程存档。规则与默认数字仍以 ICE-PUZZLE / `feel.ts` 为准；冲突时改其中一侧。
+日期：**2026-09-10**。配套玩法真源：[ICE-PUZZLE.md](./ICE-PUZZLE.md) §4。现行手势模型：[SWIPE-INTENT.md](./SWIPE-INTENT.md)。出手实现：`src/game/swipeInput.ts` · `swipeFlick.ts` · `swipeGuard.ts` · `swipeVelocity.ts` · `FEEL2_DEFAULT`。  
+本文是检索过程存档。文内「合法向分叉 / 锁轴 / 速度符号当方向」是当时对照 2048 的草稿，**已被 SWIPE-INTENT 否掉**，不要当现行规则。
 
 本游戏不是「等抬手再猜方向」的薄滑动，也不是动作游戏的连招缓冲。检索必须同时覆盖三轴，并盯住交叉地带。
 
