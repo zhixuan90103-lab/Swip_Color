@@ -989,8 +989,13 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0);
   pointer-events: auto;
+  transition: background 280ms ease;
+}
+
+.ice-overlay.is-open {
+  background: rgba(0, 0, 0, 0.55);
 }
 
 .ice-overlay.hidden {
@@ -1008,6 +1013,34 @@ button:active {
     0 1px 0 #fff6ea,
     0 12px 0 rgba(196, 160, 122, 0.45),
     0 18px 32px rgba(20, 14, 10, 0.35);
+  transform: translateY(14px) scale(0.96);
+  opacity: 0;
+}
+
+.ice-overlay.is-open .ice-card {
+  animation: over-card-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes over-card-in {
+  from {
+    transform: translateY(14px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ice-overlay {
+    transition: none;
+  }
+  .ice-overlay.is-open .ice-card {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
 }
 
 .ice-over-kicker {

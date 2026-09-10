@@ -1080,6 +1080,7 @@ export function startIceGame(opts: {
     youMotion.abort();
     busy = false;
     state = LEVELS[levelIndex]!.make();
+    overlay.classList.remove('is-open');
     overlay.classList.add('hidden');
     l1HintStep = 0;
     paintStatic(state);
@@ -1233,6 +1234,13 @@ export function startIceGame(opts: {
       });
       nextBtn.textContent = last ? '再来一遍' : '下一关';
       overlay.classList.remove('hidden');
+      overlay.classList.remove('is-open');
+      if (prefersReduceMotion()) {
+        overlay.classList.add('is-open');
+      } else {
+        void overlay.offsetWidth;
+        overlay.classList.add('is-open');
+      }
       void haptics.notification('success');
     } else {
       if (levelIndex === 0 && l1HintStep < L1_HINTS.length) {
