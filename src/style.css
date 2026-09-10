@@ -536,18 +536,6 @@ button:active {
   transform: var(--hud-btn-move);
 }
 
-.ice-next,
-.ice-over-actions .ice-restart {
-  min-height: 36px;
-  padding: 6px 14px;
-  border-radius: 14px;
-  background: linear-gradient(#5b9cff, #3b82f6);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 3px 0 #2b5cb0;
-}
-
 .ice-board-wrap {
   position: relative;
   z-index: 1;
@@ -967,11 +955,11 @@ button:active {
 .ice-overlay {
   position: absolute;
   inset: 0;
-  z-index: 8;
+  z-index: 12;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(80, 50, 30, 0.28);
+  background: rgba(0, 0, 0, 0.55);
   pointer-events: auto;
 }
 
@@ -980,36 +968,72 @@ button:active {
 }
 
 .ice-card {
-  width: 260px;
-  padding: 22px 18px;
-  border-radius: 20px;
-  background: #fff8ee;
+  position: relative;
+  width: 300px;
+  padding: 36px 24px 28px;
+  border-radius: 32px;
+  background: #f4e6d4;
   text-align: center;
-  box-shadow: 0 10px 0 #e4d3b8;
+  box-shadow:
+    0 1px 0 #fff6ea,
+    0 12px 0 rgba(196, 160, 122, 0.45),
+    0 18px 32px rgba(20, 14, 10, 0.35);
 }
 
 .ice-over-kicker {
   margin: 0;
-  font-size: 13px;
-  opacity: 0.6;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #b07a4c;
 }
 
 .ice-over-stars {
-  margin: 8px 0 16px;
-  font-size: 32px;
-  letter-spacing: 0.12em;
-  color: #e0a020;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 20px 0 26px;
+}
+
+.ice-over-stars .hud-star {
+  --hud-move: translate(0px, 0px);
+  --hud-star-scale: 1;
+  width: 64px;
+  height: 64px;
+}
+
+.ice-over-stars .hud-star.is-on {
+  --hud-star-scale: 1.12;
 }
 
 .ice-over-actions {
   display: flex;
-  gap: 8px;
+  gap: 16px;
+  align-items: center;
   justify-content: center;
 }
 
+.ice-overlay .ice-over-replay {
+  --hud-btn-move: translate(0px, 0px);
+  width: 52px;
+  height: 52px;
+  min-height: 52px;
+}
+
 .ice-next {
+  min-height: 48px;
+  padding: 10px 24px;
+  border-radius: 999px;
   background: linear-gradient(#3dba7a, #2f9e64);
-  box-shadow: 0 3px 0 #1f7a4a;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 3px 6px rgba(30, 90, 50, 0.35);
+}
+
+.ice-next:active {
+  transform: scale(1.08);
 }
 
 .tune-panel {

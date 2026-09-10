@@ -154,10 +154,14 @@ export function startIceGame(opts: {
     <p class="ice-hint" id="ice-hint"></p>
     <div class="ice-overlay hidden" id="ice-overlay">
       <div class="ice-card">
-        <p class="ice-over-kicker" id="ice-over-kicker">过关</p>
-        <p class="ice-over-stars" id="ice-over-stars">★</p>
+        <p class="ice-over-kicker" id="ice-over-kicker">Level 1</p>
+        <div class="ice-over-stars" id="ice-over-stars" aria-hidden="true">
+          <span class="hud-star" data-over="0"></span>
+          <span class="hud-star" data-over="1"></span>
+          <span class="hud-star" data-over="2"></span>
+        </div>
         <div class="ice-over-actions">
-          <button type="button" class="ice-restart" id="ice-again">重开本关</button>
+          <button type="button" class="ice-hud-icon ice-hud-restart ice-over-replay" id="ice-again" aria-label="重开本关"></button>
           <button type="button" class="ice-next" id="ice-next">下一关</button>
         </div>
       </div>
@@ -1157,8 +1161,10 @@ export function startIceGame(opts: {
       if (disposed || gen !== moveGen) return;
       const n = ratingStars(state);
       const last = levelIndex >= LEVELS.length - 1;
-      overKicker.textContent = last ? '全部通关' : `第 ${LEVELS[levelIndex]!.id} 关`;
-      overStars.textContent = '★'.repeat(n) + '☆'.repeat(3 - n);
+      overKicker.textContent = last ? '全部通关' : `Level ${LEVELS[levelIndex]!.id}`;
+      overStars.querySelectorAll('.hud-star').forEach((el, i) => {
+        el.classList.toggle('is-on', i < n);
+      });
       nextBtn.textContent = last ? '再来一遍' : '下一关';
       overlay.classList.remove('hidden');
       void haptics.notification('success');
