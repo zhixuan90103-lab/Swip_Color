@@ -15,7 +15,7 @@ export const YOU_SLIDE_LEAN = 14;
 export const YOU_SLIDE_STRETCH = 0.22;
 export const YOU_SLIDE_EYE = 0.16;
 export const PUSH_STEP_MS = 90;
-export const YOU_HIT_AMP_FULL_CELLS = 4;
+export const YOU_HIT_AMP_FULL_CELLS = 7;
 
 export const YOU_HIT_OVERLAP = 18;
 export const YOU_HIT_IN_DIST = 26;
@@ -30,7 +30,7 @@ export const YOU_HIT_SQUASH = 0.34;
 export const YOU_HIT_STRETCH = 0.28;
 export const YOU_HIT_LEAN = 22;
 export const YOU_HIT_LEAN_UD = 8;
-/** 0-cell and 1-cell floor. 4+ cells = 1. */
+/** 0-cell and 1-cell floor. 7+ cells = 1. */
 export const YOU_HIT_AMP_MIN = 0.45;
 
 export const YOU_BLINK_DUR = 0.18;

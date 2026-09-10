@@ -72,7 +72,7 @@ function shortestWin(start: IceState, collected: number): Dir[] | null {
 
 /** 手写满星路：每关解法形状必须不同。 */
 const THREE: { id: number; dirs: Dir[] }[] = [
-  { id: 1, dirs: ['right', 'right', 'down', 'left', 'right', 'down', 'left'] },
+  { id: 1, dirs: ['right', 'right', 'down', 'right', 'left', 'down', 'right'] },
   { id: 2, dirs: ['down', 'left', 'down', 'up', 'right', 'left'] },
   { id: 3, dirs: ['left', 'down', 'left', 'up', 'left', 'right', 'up'] },
   { id: 4, dirs: ['up', 'up', 'left', 'up', 'right', 'down', 'left', 'up', 'right'] },

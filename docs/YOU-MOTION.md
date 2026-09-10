@@ -79,7 +79,8 @@ Juice **不改模拟**：格点先到位，再播表现。`prefers-reduced-motio
 |------|------|
 | 0（原地顶） | 45% |
 | 1 | 45% |
-| 2 / 3 / 4+ | ≈63% / 82% / 100% |
+| 2–6 | 按格线性到满幅（约 54% / 63% / 73% / 82% / 91%） |
+| 7+ | 100% |
 
 幅度越大越快。结束把姿态交给待机弹簧（中间蹲持起），禁止跳帧。
 
@@ -136,7 +137,7 @@ HUD 三槽。评价公式仍是规则里的 **1 + 吃到的星**，见 ICE-PUZZL
 | `PUSH_STEP_MS` | 90ms/格 推箱 |
 | `YOU_HIT_IN_MS` / `FAST` | 70 / 55 |
 | `YOU_HIT_BACK_MS` / `FAST` | 300 / 255 |
-| `YOU_HIT_AMP_MIN` / 满格 | 0.45 / 4 格 |
+| `YOU_HIT_AMP_MIN` / 满格 | 0.45 / 7 格 |
 | `CELL_ADD_OP` / `CELL_ADD_FADE_MS` | 0.5 / 450（空滑轨迹；推箱按步时比例拉长） |
 | `.is-you-blob` | `you/shadow.png`；宽 `youShadow`（默认 50），高按 180×109；偏移 `youShadowX/Y`（默认 0 / 7，Y 下正） |
 | `STAR_RISE_Y` / `STAR_RISE_MS` | 100px / 110ms |

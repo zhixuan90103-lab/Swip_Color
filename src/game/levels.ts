@@ -65,7 +65,7 @@ export function makeLevel1(): IceState {
     boxes: [at(0, 3), at(1, 4)],
     stars: [at(2, 0), at(2, 4)],
     door: at(4, 2),
-    walls: [at(3, 1), at(3, 3)],
+    walls: [at(3, 1), at(3, 3), at(4, 3)],
   }), 'id');
 }
 
