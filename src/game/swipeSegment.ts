@@ -32,6 +32,8 @@ export type SegmentInput = {
   speedMin?: number;
   speedX?: number;
   speedY?: number;
+  vx?: number;
+  vy?: number;
   legal?: (dir: Dir) => boolean;
   slowDrag?: boolean;
 };
@@ -50,6 +52,8 @@ export function evaluateSegment(s: SegmentInput): SegmentDecision {
       speedMin: s.speedMin ?? 0,
       speedX: s.speedX ?? 0,
       speedY: s.speedY ?? 0,
+      vx: s.vx,
+      vy: s.vy,
       legal: s.legal,
       slowDrag: Boolean(s.slowDrag),
     };

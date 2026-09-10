@@ -34,6 +34,16 @@ describe('velocity window', () => {
     assert.ok(liftTailMs(200) > 0);
   });
 
+  it('recentDelta 只看最后两点，不被窗内反号拖走', () => {
+    const v = createVelocityWindow();
+    v.reset(0, 0, 0);
+    v.push(40, 0, -40);
+    v.push(50, 0, -20);
+    const d = v.recentDelta();
+    assert.equal(d.y, 20);
+    assert.ok(v.axisSpeed().y < 0);
+  });
+
   it('抬手揭指尾巴不计入速度（慢滑末段假甩）', () => {
     const v = createVelocityWindow();
     v.reset(0, 0, 0);

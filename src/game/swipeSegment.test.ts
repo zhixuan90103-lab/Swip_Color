@@ -310,4 +310,49 @@ describe('evaluateSegment', () => {
     });
     assert.equal(ok.fire, 1);
   });
+
+  it('手感2 位移向下但速度向上不出手（连甩回弹）', () => {
+    const d = ev({
+      scheme: 2,
+      commit: 30,
+      speedMin: 200,
+      speed: 400,
+      speedY: 400,
+      dx: 0,
+      dy: 40,
+      vx: 0,
+      vy: -400,
+    });
+    assert.equal(d.fire, null);
+  });
+
+  it('手感2 位移向上但速度向下不出手', () => {
+    const d = ev({
+      scheme: 2,
+      commit: 30,
+      speedMin: 200,
+      speed: 400,
+      speedY: 400,
+      dx: 0,
+      dy: -40,
+      vx: 0,
+      vy: 400,
+    });
+    assert.equal(d.fire, null);
+  });
+
+  it('手感2 位移与速度都向下才出手', () => {
+    const d = ev({
+      scheme: 2,
+      commit: 30,
+      speedMin: 200,
+      speed: 400,
+      speedY: 400,
+      dx: 0,
+      dy: 40,
+      vx: 0,
+      vy: 400,
+    });
+    assert.equal(d.fire, 2);
+  });
 });

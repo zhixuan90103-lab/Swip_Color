@@ -1,38 +1,48 @@
 /**
- * Event layer: Pointer → evaluateSegment.
- * 2048 手感事件层：Pointer → feel1 / feel2。冰面玩法默认手感2。
+ * 手势层。手感2：一次按下一个手势，方向只看本次 Armed 原点位移。
+ * 设计见 docs/SWIPE-INTENT.md。
  */
 
-import { DESIGN_WIDTH } from '../adapt/design';
+import { DESIGN_SAFE, DESIGN_WIDTH } from '../adapt/design';
 import type { Dir } from './dir';
 import { FEEL1_DEFAULT, type Feel } from './feel';
-import { evaluateFeel1 } from './swipeFeel1';
-import { evaluateFeel2 } from './swipeFeel2';
+import {
+  decideFlick,
+  isLightPressure,
+  LIGHT_COMMIT_MUL,
+  LIGHT_SPEED_MUL,
+  POST_FIRE_UP_GUARD_MS,
+} from './swipeFlick';
 import {
   shouldInvalidOnLift,
   shouldLatchSlowDrag,
   type Axis,
-  type SegmentDecision,
 } from './swipeAxis';
-import { alongSpeed, createVelocityWindow, liftTailMs } from './swipeVelocity';
+import {
+  clientInStage,
+  clientInSystemEdge,
+  isStalePointer,
+} from './swipeGuard';
+import { alongSpeed, createVelocityWindow } from './swipeVelocity';
 
 export type SwipeInputOptions = {
   target: HTMLElement;
   getFeel?: () => Feel;
   isBlocked?: () => boolean;
+  /** 为 false 时挡住不出手也不排队（转场）。默认 true：滑棋中可存一步。 */
+  canQueue?: () => boolean;
   onMove: (dir: Dir) => void;
   onInvalid?: (dir: Dir) => void;
-  /** 2048：该向盘面是否能动。不传则不做 40°–45° 斜滑分叉。 */
   getLegal?: () => ((dir: Dir) => boolean) | undefined;
-  /** 本按下已走棋且尚未抬手时进后台：撤回盘面 */
   onBackgroundAbort?: () => void;
-  /** 正常抬手，本按下的走棋生效 */
   onGestureCommit?: () => void;
 };
 
 export type SwipeHandle = {
   dispose: () => void;
   onMoveSettled: () => void;
+  /** 丢掉已存的下一步，并吞掉当前这根手指（转场用）。 */
+  cancelInput: () => void;
   isHolding: () => boolean;
 };
 
@@ -43,28 +53,34 @@ function isChrome(el: EventTarget | null): boolean {
   );
 }
 
+type Gesture = {
+  pid: number;
+  downTs: number;
+  ox: number;
+  oy: number;
+  x: number;
+  y: number;
+  lastT: number;
+  armed: boolean;
+  armTs: number;
+  samples: number;
+  fired: boolean;
+  slow: boolean;
+  ignore: boolean;
+  light: boolean;
+  axis: Axis | null;
+  vel: ReturnType<typeof createVelocityWindow>;
+};
+
 export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
-  const { target, onMove, onInvalid, isBlocked, onBackgroundAbort, onGestureCommit, getLegal } =
+  const { target, onMove, onInvalid, isBlocked, canQueue, onBackgroundAbort, onGestureCommit } =
     opts;
-  let firedThisHold = false;
   const feelOf = () => opts.getFeel?.() ?? FEEL1_DEFAULT;
-  let pid: number | null = null;
-  let holding = false;
-  let segX = 0;
-  let segY = 0;
-  let lastX = 0;
-  let lastY = 0;
-  let lastDir: Dir | null = null;
-  let axis: Axis | null = null;
-  let retryTimer = 0;
-  let commitTimer = 0;
+  let g: Gesture | null = null;
+  let pending: Dir | null = null;
   let lastFireAt = 0;
-  let holdStart = 0;
-  let ignoreFire = false;
-  let slowDrag = false;
-  /** busy 期间已抬手、本段还没走棋：settle 后立刻判定，不清段 */
-  let liftQueued = false;
-  const vel = createVelocityWindow();
+  let lastFiredUpTs = 0;
+  let commitTimer = 0;
   const BG_GUARD_MS = 800;
 
   const cssPx = (name: string, fallback: number) => {
@@ -72,12 +88,7 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     return Number.isFinite(n) && n > 0 ? n : fallback;
   };
 
-  /** 顶/底安全区起手：整次按下不走棋，避免和系统手势叠在一起。 */
-  const inSystemEdge = (clientY: number) => {
-    const top = cssPx('--safe-top', 59) + 4;
-    const bottom = cssPx('--safe-bottom', 34) + 4;
-    return clientY < top || clientY > window.innerHeight - bottom;
-  };
+  const stageBox = () => target.getBoundingClientRect();
 
   const scalePx = (designPx: number) => {
     const w = target.getBoundingClientRect().width;
@@ -85,214 +96,182 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     return designPx * s;
   };
 
-  const consumeSegment = () => {
-    segX = lastX;
-    segY = lastY;
-    axis = null;
-    vel.reset(performance.now(), lastX, lastY);
+  const inSystemEdge = (clientY: number) => {
+    const box = stageBox();
+    const native = document.documentElement.classList.contains('native-app');
+    const topBand = (native ? cssPx('--safe-top', DESIGN_SAFE.top) : scalePx(DESIGN_SAFE.top)) + 4;
+    const botBand =
+      (native ? cssPx('--safe-bottom', DESIGN_SAFE.bottom) : scalePx(DESIGN_SAFE.bottom)) + 4;
+    return clientInSystemEdge(clientY, box, topBand, botBand);
   };
 
-  const applyDecision = (d: SegmentDecision) => {
-    if (d.dead != null) {
-      consumeSegment();
-      lastDir = d.dead;
-      if (!ignoreFire) onInvalid?.(d.dead);
-      return;
+  const emit = (dir: Dir) => {
+    lastFireAt = performance.now();
+    onMove(dir);
+  };
+
+  const tryFlick = () => {
+    if (!g || g.ignore || g.fired || !g.armed) return;
+    const feel = feelOf();
+    if (feel.scheme !== 2) return;
+    const dx = g.x - g.ox;
+    const dy = g.y - g.oy;
+    const slop = scalePx(feel.slopPx);
+    const lightMul = g.light ? LIGHT_COMMIT_MUL : 1;
+    const commit = scalePx(feel.commitPx) * lightMul;
+    const blocked = Boolean(isBlocked?.());
+    const spd = g.vel.axisSpeed(g.lastT);
+    const speed = alongSpeed(spd, Math.abs(dx) >= Math.abs(dy) ? 1 : 0);
+    const speedMin = scalePx(feel.speedPxS) * (g.light ? LIGHT_SPEED_MUL : 1);
+    if (!g.slow && shouldLatchSlowDrag(Math.max(Math.abs(dx), Math.abs(dy)), speed, commit, speedMin)) {
+      g.slow = true;
     }
-    if (d.consume) {
-      consumeSegment();
-      if (d.fire !== null) {
-        lastDir = d.fire;
-        if (ignoreFire) return;
-        firedThisHold = true;
-        lastFireAt = performance.now();
-        onMove(d.fire);
+    const d = decideFlick({
+      dx,
+      dy,
+      axis: g.axis,
+      slop,
+      commit,
+      axisRatio: feel.axisRatio,
+      speed,
+      speedMin,
+      slow: g.slow,
+      fired: g.fired,
+      legal: undefined,
+      allowFork: false,
+    });
+    if (d.axis !== undefined) g.axis = d.axis;
+    if (d.fire === null) return;
+    if (blocked) {
+      if ((canQueue?.() ?? true) && pending === null) {
+        g.fired = true;
+        pending = d.fire;
       }
       return;
     }
-    axis = d.axis;
+    g.fired = true;
+    emit(d.fire);
   };
 
-  const tryCommit = (fromLift = false) => {
-    if (ignoreFire) return;
-    if (isBlocked?.()) return;
-    if (!fromLift && !holding) return;
-    const feel = feelOf();
-    const dx = lastX - segX;
-    const dy = lastY - segY;
-    const slop = scalePx(feel.slopPx);
-    const commit = scalePx(feel.commitPx);
-    const axisRatio = feel.axisRatio;
-
-    if (feel.scheme === 2) {
-      const lock: Axis = axis ?? (Math.abs(dx) > Math.abs(dy) ? 1 : 0);
-      const now = performance.now();
-      const spd = vel.axisSpeed(now, fromLift ? liftTailMs(now - holdStart) : 0);
-      const speed = alongSpeed(spd, lock);
-      const speedMin = scalePx(feel.speedPxS);
-      if (!fromLift && !slowDrag) {
-        const along = Math.max(Math.abs(dx), Math.abs(dy));
-        if (shouldLatchSlowDrag(along, speed, commit, speedMin)) slowDrag = true;
-      }
-      applyDecision(
-        evaluateFeel2({
-          dx,
-          dy,
-          axis,
-          lastDir,
-          slop,
-          commit,
-          axisRatio,
-          speed,
-          speedMin,
-          speedX: Math.abs(spd.x),
-          speedY: Math.abs(spd.y),
-          legal: getLegal?.(),
-          slowDrag,
-        }),
-      );
-      return;
-    }
-
-    applyDecision(
-      evaluateFeel1({
-        dx,
-        dy,
-        axis,
-        lastDir,
-        slop,
-        commit,
-        axisRatio,
-        sameDirRepeat: feel.sameDirRepeat,
-      }),
-    );
-  };
-
-  const commitOnLift = () => {
-    if (ignoreFire) return;
-    const feel = feelOf();
-    const slop = scalePx(feel.slopPx);
-    const commit = scalePx(feel.commitPx);
-    const dist = Math.max(Math.abs(lastX - segX), Math.abs(lastY - segY));
-    if (shouldInvalidOnLift({ lastDir, dist, slop, commit })) {
-      const dx = lastX - segX;
-      const dy = lastY - segY;
-      const dir: Dir =
-        Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 1 : 3) : dy >= 0 ? 2 : 0;
-      onInvalid?.(dir);
-    } else {
-      tryCommit(true);
-    }
-  };
-
-  const armRetry = (ms: number) => {
-    window.clearTimeout(retryTimer);
-    retryTimer = window.setTimeout(() => {
-      if (holding) tryCommit();
-    }, ms);
-  };
-
-  const grab = (e: PointerEvent, fresh: boolean) => {
-    pid = e.pointerId;
-    lastX = e.clientX;
-    lastY = e.clientY;
-    vel.reset(performance.now(), lastX, lastY);
-    if (fresh || !holding) {
-      window.clearTimeout(commitTimer);
-      if (firedThisHold) onGestureCommit?.();
-      segX = lastX;
-      segY = lastY;
-      lastDir = null;
-      axis = null;
-      firedThisHold = false;
-      slowDrag = false;
-      liftQueued = false;
-      holdStart = performance.now();
-      ignoreFire = inSystemEdge(lastY);
-    } else {
-      consumeSegment();
-    }
-    holding = true;
+  const startG = (e: PointerEvent) => {
+    const vel = createVelocityWindow();
+    vel.reset(e.timeStamp, e.clientX, e.clientY);
+    g = {
+      pid: e.pointerId,
+      downTs: e.timeStamp,
+      ox: e.clientX,
+      oy: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
+      lastT: e.timeStamp,
+      armed: false,
+      armTs: e.timeStamp,
+      samples: 0,
+      fired: false,
+      slow: false,
+      ignore: inSystemEdge(e.clientY),
+      light: isLightPressure(e.pressure, e.pointerType),
+      axis: null,
+      vel,
+    };
     try {
       target.setPointerCapture(e.pointerId);
     } catch {
       /* ignore */
     }
-  };
-
-  const onMoveSettled = () => {
-    if (liftQueued) {
-      liftQueued = false;
-      commitOnLift();
-      return;
-    }
-    if (holding && lastDir === null) {
-      tryCommit();
-      return;
-    }
-    consumeSegment();
-    if (holding) armRetry(feelOf().rearmMs);
   };
 
   const onDown = (e: PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (isChrome(e.target)) return;
+    if (!clientInStage(e.clientX, e.clientY, stageBox())) return;
+    if (g) return;
+    if (lastFiredUpTs > 0 && e.timeStamp - lastFiredUpTs < POST_FIRE_UP_GUARD_MS) return;
     e.preventDefault();
-    grab(e, true);
+    startG(e);
     target.focus({ preventScroll: true });
   };
 
-  const onMovePtr = (e: PointerEvent) => {
-    if (!holding) return;
-    if (pid === null || e.pointerId !== pid) grab(e, false);
-    lastX = e.clientX;
-    lastY = e.clientY;
-    vel.push(performance.now(), lastX, lastY);
-    tryCommit();
-  };
-
-  const endHold = (e: PointerEvent, fromCancel: boolean) => {
-    if (!holding) return;
-    if (pid !== null && e.pointerId !== pid && !fromCancel) return;
-    lastX = e.clientX;
-    lastY = e.clientY;
-    window.clearTimeout(retryTimer);
-
-    if (fromCancel) {
-      pid = null;
+  const applyPoint = (t: number, x: number, y: number) => {
+    if (!g) return;
+    g.x = x;
+    g.y = y;
+    g.lastT = t;
+    g.vel.push(t, x, y);
+    const feel = feelOf();
+    const slop = scalePx(feel.slopPx);
+    if (!g.armed) {
+      const dist = Math.max(Math.abs(x - g.ox), Math.abs(y - g.oy));
+      if (dist < slop) return;
+      g.armed = true;
+      g.armTs = t;
+      g.samples = 0;
       return;
     }
+    g.samples += 1;
+    tryFlick();
+  };
 
-    if (isBlocked?.()) {
-      if (lastDir === null && !firedThisHold) liftQueued = true;
-    } else {
-      commitOnLift();
+  const onMovePtr = (e: PointerEvent) => {
+    if (!g) return;
+    if (e.pointerId !== g.pid || isStalePointer(e.timeStamp, g.downTs)) return;
+    e.preventDefault();
+    g.light = isLightPressure(e.pressure, e.pointerType);
+    const batch = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e];
+    for (const m of batch) applyPoint(m.timeStamp, m.clientX, m.clientY);
+  };
+
+  const onUp = (e: PointerEvent) => {
+    if (!g) return;
+    if (e.pointerId !== g.pid || isStalePointer(e.timeStamp, g.downTs)) return;
+    g.x = e.clientX;
+    g.y = e.clientY;
+    const feel = feelOf();
+    if (feel.scheme === 2 && !g.fired && !g.ignore) {
+      tryFlick();
+      if (!g.fired && g.armed) {
+        const slop = scalePx(feel.slopPx);
+        const commit = scalePx(feel.commitPx);
+        const dist = Math.max(Math.abs(g.x - g.ox), Math.abs(g.y - g.oy));
+        if (shouldInvalidOnLift({ lastDir: null, dist, slop, commit })) {
+          const dx = g.x - g.ox;
+          const dy = g.y - g.oy;
+          const dir: Dir = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 1 : 3) : dy >= 0 ? 2 : 0;
+          onInvalid?.(dir);
+        }
+      }
     }
-    holding = false;
-    pid = null;
-    lastDir = null;
+    const fired = g.fired;
+    if (fired) lastFiredUpTs = e.timeStamp;
+    g = null;
     window.clearTimeout(commitTimer);
     commitTimer = window.setTimeout(() => {
-      firedThisHold = false;
-      onGestureCommit?.();
+      if (fired) onGestureCommit?.();
     }, BG_GUARD_MS);
   };
 
-  const onUp = (e: PointerEvent) => endHold(e, false);
-  const onCancel = (e: PointerEvent) => endHold(e, true);
+  const onCancel = (e: PointerEvent) => {
+    if (!g) return;
+    if (e.pointerId !== g.pid) return;
+    g = null;
+  };
 
-  const onLostCapture = (e: PointerEvent) => {
-    if (e.pointerId !== pid || !holding) return;
-    try {
-      target.setPointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
+  const cancelInput = () => {
+    pending = null;
+    if (g) {
+      g.ignore = true;
+      g.fired = true;
     }
   };
 
-  const onTouchGuard = (e: TouchEvent) => {
-    if (!holding) return;
-    if (e.cancelable) e.preventDefault();
+  const onMoveSettled = () => {
+    if (pending !== null) {
+      const dir = pending;
+      pending = null;
+      emit(dir);
+      return;
+    }
+    if (g && !g.fired) tryFlick();
   };
 
   const onKey = (e: KeyboardEvent) => {
@@ -318,59 +297,50 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     onMove(dir);
   };
 
+  const dropHoldForBackground = (force = false) => {
+    if (!force && document.visibilityState === 'visible') return;
+    const recent = g?.fired && performance.now() - lastFireAt < BG_GUARD_MS;
+    const had = g;
+    g = null;
+    pending = null;
+    window.clearTimeout(commitTimer);
+    if (recent) onBackgroundAbort?.();
+    else if (had) onGestureCommit?.();
+  };
+
+  const onVis = () => {
+    if (document.visibilityState === 'hidden') dropHoldForBackground();
+  };
+  const onHide = () => dropHoldForBackground(true);
+
   const peOpts: AddEventListenerOptions = { capture: true, passive: false };
   target.tabIndex = 0;
   window.addEventListener('pointerdown', onDown, peOpts);
   window.addEventListener('pointermove', onMovePtr, peOpts);
   window.addEventListener('pointerup', onUp, peOpts);
   window.addEventListener('pointercancel', onCancel, peOpts);
-  target.addEventListener('lostpointercapture', onLostCapture);
-  window.addEventListener('touchstart', onTouchGuard, peOpts);
-  window.addEventListener('touchmove', onTouchGuard, peOpts);
   window.addEventListener('keydown', onKey, true);
-
-  const dropHoldForBackground = (force = false) => {
-    if (!force && document.visibilityState === 'visible') return;
-    const recent = firedThisHold && (holding || performance.now() - lastFireAt < BG_GUARD_MS);
-    holding = false;
-    pid = null;
-    lastDir = null;
-    firedThisHold = false;
-    window.clearTimeout(retryTimer);
-    window.clearTimeout(commitTimer);
-    if (recent) onBackgroundAbort?.();
-    else onGestureCommit?.();
-  };
-
-  const onVis = () => {
-    if (document.visibilityState === 'hidden') dropHoldForBackground();
-  };
-
-  const onPageHide = () => dropHoldForBackground(true);
-  const onBlur = () => dropHoldForBackground(true);
   document.addEventListener('visibilitychange', onVis);
-  window.addEventListener('pagehide', onPageHide);
-  window.addEventListener('blur', onBlur);
-  document.addEventListener('freeze', onPageHide);
+  window.addEventListener('pagehide', onHide);
+  window.addEventListener('blur', onHide);
+  document.addEventListener('freeze', onHide);
 
   return {
     onMoveSettled,
-    isHolding: () => holding,
+    cancelInput,
+    isHolding: () => g !== null,
     dispose: () => {
-      window.clearTimeout(retryTimer);
       window.clearTimeout(commitTimer);
-      document.removeEventListener('visibilitychange', onVis);
-      window.removeEventListener('pagehide', onPageHide);
-      window.removeEventListener('blur', onBlur);
-      document.removeEventListener('freeze', onPageHide);
       window.removeEventListener('pointerdown', onDown, peOpts);
       window.removeEventListener('pointermove', onMovePtr, peOpts);
       window.removeEventListener('pointerup', onUp, peOpts);
       window.removeEventListener('pointercancel', onCancel, peOpts);
-      target.removeEventListener('lostpointercapture', onLostCapture);
-      window.removeEventListener('touchstart', onTouchGuard, peOpts);
-      window.removeEventListener('touchmove', onTouchGuard, peOpts);
       window.removeEventListener('keydown', onKey, true);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pagehide', onHide);
+      window.removeEventListener('blur', onHide);
+      document.removeEventListener('freeze', onHide);
+      g = null;
     },
   };
 }

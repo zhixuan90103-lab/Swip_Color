@@ -235,7 +235,7 @@ export const FEEL2_FIELDS: FieldSpec[] = [
   {
     key: 'commitPx',
     label: '出手距离',
-    why: '沿轴走到此值且窗速度够才走棋。默认 30。慢滑再远也不走。',
+    why: '出死区后沿轴再走这么远才出手。慢滑再远也不走。',
     kind: 'range',
     min: 8,
     max: 80,
@@ -245,7 +245,7 @@ export const FEEL2_FIELDS: FieldSpec[] = [
   {
     key: 'speedPxS',
     label: '出手速度',
-    why: '最近约 80ms 沿锁轴的速度。低于此值再远也不走。',
+    why: '最近约 80ms 沿锁轴的速度。低于此值再远也不走。休闲甩，不必甩满。',
     kind: 'range',
     min: 80,
     max: 1200,

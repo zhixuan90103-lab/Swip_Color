@@ -106,7 +106,9 @@ export function startIceGame(opts: {
 }): IceGameHandle {
   let levelIndex = 0;
   let state = LEVELS[0]!.make();
-  let busy = false;
+  let slideBusy = false;
+  let transitionBusy = false;
+  const inputLocked = () => slideBusy || transitionBusy || state.won || disposed;
   let disposed = false;
   let moveGen = 0;
   let fxGen = 0;
@@ -1078,7 +1080,7 @@ export function startIceGame(opts: {
     levelIndex = Math.max(0, Math.min(LEVELS.length - 1, index));
     moveGen += 1;
     youMotion.abort();
-    busy = false;
+    slideBusy = false;
     state = LEVELS[levelIndex]!.make();
     overlay.classList.remove('is-open');
     overlay.classList.add('hidden');
@@ -1089,12 +1091,17 @@ export function startIceGame(opts: {
 
   const runIrisSwap = (swap: () => void) => {
     if (disposed) return;
-    busy = true;
+    transitionBusy = true;
+    swipe.cancelInput();
     void iris.play(() => {
       swap();
-      busy = true;
+      transitionBusy = true;
+      swipe.cancelInput();
     }).then(() => {
-      if (!disposed) busy = false;
+      if (!disposed) {
+        transitionBusy = false;
+        swipe.cancelInput();
+      }
     });
   };
 
@@ -1155,11 +1162,11 @@ export function startIceGame(opts: {
   });
 
   async function playDir(dir: Dir): Promise<void> {
-    if (busy || state.won || disposed) return;
+    if (inputLocked()) return;
     fadeHintOut();
     const result = applyDir(state, dir);
     const gen = ++moveGen;
-    busy = true;
+    slideBusy = true;
     boxMotion.abort();
     youMotion.startSlide(dir, performance.now());
     const you = board.querySelector('#ice-you') as HTMLElement;
@@ -1203,7 +1210,7 @@ export function startIceGame(opts: {
     cellAdd.endTrack();
     state = result.state;
     placeTokens(state);
-    busy = false;
+    slideBusy = false;
     swipe.onMoveSettled();
 
     const cells = Math.max(0, steps - 1);
@@ -1272,10 +1279,15 @@ export function startIceGame(opts: {
   const swipe = attachSwipeInput({
     target: opts.stage,
     getFeel: () => FEEL2_DEFAULT,
-    isBlocked: () => busy || state.won || disposed,
-    getLegal: () => (d) => applyDir(state, iceDirFromSwipe(d)).kind !== 'stuck',
+    isBlocked: () => inputLocked(),
+    canQueue: () => slideBusy && !transitionBusy,
     onMove: (d) => {
       void playDir(iceDirFromSwipe(d));
+    },
+    onInvalid: (d) => {
+      if (inputLocked()) return;
+      youMotion.startHit(iceDirFromSwipe(d), performance.now(), 0);
+      void haptics.impact('light');
     },
   });
 

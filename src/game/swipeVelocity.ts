@@ -41,6 +41,13 @@ export function createVelocityWindow() {
      * client px / s，窗内净位移 / 时间。样本不足则为 0。
      * `ignoreTailMs`：丢掉此刻之前这一段样本（抬手揭指）。
      */
+    /** 最近两点位移。方向用这个，避免 80ms 窗把上一划/回弹平均成反号。 */
+    recentDelta(): { x: number; y: number } {
+      if (samples.length < 2) return { x: 0, y: 0 };
+      const a = samples[samples.length - 2]!;
+      const b = samples[samples.length - 1]!;
+      return { x: b.x - a.x, y: b.y - a.y };
+    },
     axisSpeed(now = samples.length ? samples[samples.length - 1].t : 0, ignoreTailMs = 0): AxisSpeed {
       const cutoff = now - ignoreTailMs;
       let i0 = 0;

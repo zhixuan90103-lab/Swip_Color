@@ -21,14 +21,26 @@ export type Feel2Input = {
   speedMin: number;
   speedX: number;
   speedY: number;
+  /** 窗速度带号。与位移反号 = 回弹，不出手。缺省当与位移同号。 */
+  vx?: number;
+  vy?: number;
   legal?: (dir: Dir) => boolean;
   slowDrag: boolean;
 };
 
+function velAgrees(disp: number, vel: number | undefined): boolean {
+  if (vel === undefined) return true;
+  return disp * vel > 0;
+}
+
 function dirReady(s: Feel2Input, dir: Dir): boolean {
   if (!s.legal?.(dir)) return false;
-  const spd = dir === 1 || dir === 3 ? s.speedX : s.speedY;
-  return spd >= s.speedMin;
+  const horiz = dir === 1 || dir === 3;
+  const spd = horiz ? s.speedX : s.speedY;
+  if (spd < s.speedMin) return false;
+  const disp = horiz ? s.dx : s.dy;
+  const vel = horiz ? s.vx : s.vy;
+  return velAgrees(disp, vel);
 }
 
 /** 未锁轴且两轴都够 commit、偏角 ≥ 40°：只走「唯一能走的那一向」。 */
@@ -82,6 +94,12 @@ export function evaluateFeel2(s: Feel2Input): SegmentDecision {
   }
 
   if (s.speed < s.speedMin) {
+    return { axis, fire: null, consume: false };
+  }
+
+  const disp = axis === 1 ? s.dx : s.dy;
+  const vel = axis === 1 ? s.vx : s.vy;
+  if (!velAgrees(disp, vel)) {
     return { axis, fire: null, consume: false };
   }
 

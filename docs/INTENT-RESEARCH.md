@@ -379,11 +379,29 @@
 
 ---
 
+## 16. 连甩反号（2026-09-10 全网检索）
+
+每次抬手再上下甩仍认成反方向。检索命中：
+
+| 来源 | 方法 |
+|------|------|
+| [Chromium 417855](https://chromium.googlesource.com/chromium/src.git/+/294e5f2d7277a47df084a4a914f3bfc96fdb8d80) | 二次拟合在急停时速度**反号**；禁止沿手指反方向 fling |
+| [Android VelocityTracker 反号](https://issuetracker.google.com/37048172) | 单调位移仍算出反号速度；线性/冲量代替二次拟合 |
+| [ViewPager 飞错边](https://stackoverflow.com/questions/7996421/android-view-pager-flings-the-wrong-way) | 从 DOWN 起把事件喂给 tracker；手指出屏/过快会反飞 |
+| [onFling 反号](https://stackoverflow.com/questions/16381973/onfling-gestures-not-being-accurate) | **方向用起点→终点位移，不用 velocity 符号** |
+| [use-gesture #409](https://github.com/pmndrs/use-gesture/issues/409) | **两下连划**在部分机型方向错 |
+| Android 组：抬手事件晚到 30ms | 末段像静止再抽，污染速度窗 |
+
+落地：丢掉 `timeStamp < 本次 pointerdown` 的过期 up/move（pointerId 复用 + 迟到抬手）；方向符号用**最近两点**，不用 80ms 净位移。
+
+---
+
 ## 14. 仍未检索闭合（不挡收束）
 
-- letterbox 起手是否应在 `onDown` 用 `clientToDesign` 整次 ignore（实现题，计划已标缺口）。  
-- `pointercancel` 已走棋撤不撤：无强来源，维持不撤，直到真机系统手势抢走半步。  
-- 按下未出手前的视觉 ack（跟手光）未做，属 YOU-MOTION / VISUAL，不是门槛。  
+- letterbox / 安全带相对舞台：**已接**（`swipeGuard` + `onDown` 舞台外 return；安全带用 `#stage` 盒）。  
+- 未出手失败回声：**已接** `onInvalid` → 0 格砸入 + 轻震。  
+- `pointercancel` 已走棋撤不撤：无强来源，维持不撤。  
+- 按下未出手前的跟手光仍未做。  
 - Pad 左右边系统手势未真机验。
 
 ---
