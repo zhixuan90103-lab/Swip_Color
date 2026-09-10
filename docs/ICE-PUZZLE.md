@@ -47,7 +47,7 @@
 
 ## 4. 输入（与旧 2048 出手一致）
 
-只认方向，不点选某一块。走棋用 **手感 2 甩动**（`FEEL2_DEFAULT`），不是另写一套薄滑动。
+只认方向，不点选某一块。走棋用 **手感 2 甩动**（`FEEL2_DEFAULT`），不是另写一套薄滑动。意图识别怎么检索、验收：[INTENT-RESEARCH.md](./INTENT-RESEARCH.md)。
 
 - 死区 `slopPx` 10、出手距离 `commitPx` 30、轴比 `axisRatio` 1.55  
 - 80ms 速度窗，`speedPxS` 200；慢了锁死，本按下再加速也不走  

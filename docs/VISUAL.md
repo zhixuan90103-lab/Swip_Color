@@ -19,7 +19,7 @@
 | 角色 | 运行时文件 | 接到哪 |
 |------|------------|--------|
 | 桌面背景 | `public/ui/table-bg.png` | `iceGame.ts`：`BASE_URL + 'ui/table-bg.png'`，`cover` |
-| 九宫托盘 | `src/assets/ui/board-9slice.png` | `.ice-board-frame` 边框 `border-image`（slice **132**，边宽 **44px**，**不要 fill**）。井内实地 `#aac1de`，避免九宫接缝线 |
+| 九宫托盘 | `src/assets/ui/board-9slice.png` | `.ice-board-frame` `border-image`（slice **132**，边宽 **44px**） |
 | 冰砖浅 | `src/assets/ui/ice-a.png` | `.is-ice-a`，`(r+c)` 偶数 |
 | 冰砖深 | `src/assets/ui/ice-b.png` | `.is-ice-b`，奇数 |
 | 墙/石头 | `src/assets/ui/wall.png` | `.wall-sprite` |
@@ -68,9 +68,9 @@
 | 角色影 / 影X / 影Y | 角色投影贴图宽（高按 180×109 同比）；相对脚底偏移（X 右正，Y 下正） |
 | 光大小/X/Y/透明 | 星星格中心黄色泛光 |
 
-现行默认见 `TUNE_DEFAULT`（棋盘：宽 360、高 366、格子 60、缝 2、框距 -20、冰砖透明 25、箱 66 / 箱X 1 / 箱Y -2、角色 66 / 角Y -10、角色影 50 / 影X 0 / 影Y 7、石头 66、星 70 / 星Y -15、光 60 / 光Y 5 / 光透明 60、终点 70。HUD：星底 200 / Y 20、关卡字 16 / 文字 Y -5、空星 40、亮星 55、星 Y -1、重开 15,20、设置 -15,20）。
+现行默认见 `TUNE_DEFAULT`（棋盘：宽 360、高 366、格子 60、缝 2、框距 -20、冰砖透明 25、箱 66 / 箱X 1 / 箱Y -2、角色 66 / 角Y -10、角色影 50 / 影X 0 / 影Y 7、石头 66、星 70 / 星Y -15、光 60 / 光Y 5 / 光透明 60、终点 70。HUD：星底 200 / Y 20、关卡字 16 / 文字 Y -5、空星 40、亮星 55、星 Y -1、重开 15,20 / 大 135、设置 -15,20 / 大 135、提示 Y -80 / 字 15）。
 
-localStorage 键：`ice-board-tune-v16`。改默认时升版本，避免旧缓存盖住新值。
+localStorage 键：`ice-board-tune-v19`。改默认时升版本，避免旧缓存盖住新值。
 
 5×5 → 托盘 360×366；5×6 → 约 423×366；6×6 → 约 423×429。超出中间区域则 `fitBoard` 整体 `scale` 放下，相对比例不变。
 
@@ -117,7 +117,7 @@ localStorage 键：`ice-board-tune-v16`。改默认时升版本，避免旧缓�
 
 `#ice-stars` `.hud-star[data-i=0|1|2]`：槽 0 / 1 = 两颗收集星飞入；槽 2 = 进门装饰星飞入。
 
-调参面板「顶部 HUD」：星底 / 星底XY / 关卡字 / 文字XY / 星大小 / 亮星大 / 三星 XY / 重开 XY / 设置 XY。震动轻/中/重在面板底部。
+调参面板「顶部 HUD」：星底 / 星底XY / 关卡字 / 文字XY / 星大小 / 亮星大 / 三星 XY / 重开 XY / 设置 XY / 提示 XY / 提示字。震动轻/中/重在面板底部。提示框 Y 上负下正（`transform`，不挤棋盘）。
 
 **结算** `#ice-overlay`：全屏黑 `rgba(0,0,0,0.55)`；奶油卡 + `Level n` + 同款三星 + 圆形重开 + 绿色「下一关」（第 15 关「再来一遍」）。等飞星结束再出，见 YOU-MOTION §7。
 

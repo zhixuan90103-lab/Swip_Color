@@ -63,8 +63,13 @@ export type BoardTune = {
   hudStar2Y: number;
   hudRestartX: number;
   hudRestartY: number;
+  hudRestartScale: number;
   hudSettingsX: number;
   hudSettingsY: number;
+  hudSettingsScale: number;
+  hudHintX: number;
+  hudHintY: number;
+  hudHintFont: number;
 };
 
 export const TUNE_DEFAULT: BoardTune = {
@@ -117,8 +122,13 @@ export const TUNE_DEFAULT: BoardTune = {
   hudStar2Y: -1,
   hudRestartX: 15,
   hudRestartY: 20,
+  hudRestartScale: 135,
   hudSettingsX: -15,
   hudSettingsY: 20,
+  hudSettingsScale: 135,
+  hudHintX: 0,
+  hudHintY: -80,
+  hudHintFont: 15,
 };
 
 export const TUNE_RANGE = {
@@ -171,8 +181,13 @@ export const TUNE_RANGE = {
   hudStar2Y: { min: -24, max: 24 },
   hudRestartX: { min: -48, max: 48 },
   hudRestartY: { min: -48, max: 48 },
+  hudRestartScale: { min: 70, max: 160 },
   hudSettingsX: { min: -48, max: 48 },
   hudSettingsY: { min: -48, max: 48 },
+  hudSettingsScale: { min: 70, max: 160 },
+  hudHintX: { min: -48, max: 48 },
+  hudHintY: { min: -80, max: 40 },
+  hudHintFont: { min: 10, max: 20 },
 } as const;
 
 /** hud-goal.png 322×130 — keep 星底 scale uniform. */

@@ -509,17 +509,19 @@ button:active {
   border-radius: 50%;
   background: url('./assets/ui/hud-restart.png') center / 100% 100% no-repeat;
   box-shadow: 0 3px 6px rgba(40, 55, 120, 0.38);
-  transform: scale(1);
+  transform: scale(var(--hud-icon-scale, 1));
   transform-origin: center center;
   pointer-events: none;
 }
 
 .ice-hud-icon.ice-hud-restart {
   --hud-btn-move: translate(var(--hud-restart-x, 0px), var(--hud-restart-y, 0px));
+  --hud-icon-scale: var(--hud-restart-scale, 1);
 }
 
 .ice-hud-icon.ice-settings {
   --hud-btn-move: translate(var(--hud-settings-x, 0px), var(--hud-settings-y, 0px));
+  --hud-icon-scale: var(--hud-settings-scale, 1);
 }
 
 .ice-hud-icon.ice-settings::before {
@@ -528,7 +530,7 @@ button:active {
 
 .ice-hud-icon.is-press::before,
 .ice-hud-icon:active::before {
-  transform: scale(1.12);
+  transform: scale(calc(var(--hud-icon-scale, 1) * 1.12));
 }
 
 .ice-hud-icon:active {
@@ -580,11 +582,10 @@ button:active {
   border-style: solid;
   border-width: var(--board-rim);
   border-radius: 0;
-  background-color: #aac1de;
-  background-clip: padding-box;
+  background: transparent;
   box-shadow: none;
   border-image-source: url('./assets/ui/board-9slice.png');
-  border-image-slice: 132;
+  border-image-slice: 132 fill;
   border-image-width: var(--board-rim);
   border-image-repeat: stretch;
 }
@@ -925,17 +926,18 @@ button:active {
 .ice-hint {
   position: relative;
   z-index: 1;
-  margin: 0 auto 6px;
+  margin: 0 auto 8px;
   max-width: 320px;
   padding: 10px 16px;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--hud-hint-font, 13px);
   font-weight: 600;
   color: #b06a48;
   background: #f7ead4;
   border: 1.5px dashed #e2c49a;
   border-radius: 999px;
   opacity: 1;
+  transform: translate(var(--hud-hint-x, 0px), var(--hud-hint-y, 0px));
 }
 
 .ice-iris {

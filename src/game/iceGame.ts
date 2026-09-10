@@ -35,7 +35,7 @@ import {
 import { createIrisWipe } from './irisWipe';
 import { PUSH_STEP_MS, createYouMotion, hitAmpForCells, hitDurationMs, type LookTarget } from './youMotion';
 
-const TUNE_KEY = 'ice-board-tune-v16';
+const TUNE_KEY = 'ice-board-tune-v19';
 const STEP_MS = FEEL2_DEFAULT.slideMs;
 const TUNE_KEYS = Object.keys(TUNE_DEFAULT) as (keyof BoardTune)[];
 const HUD_SLIDERS: { key: keyof BoardTune; label: string }[] = [
@@ -55,8 +55,13 @@ const HUD_SLIDERS: { key: keyof BoardTune; label: string }[] = [
   { key: 'hudStar2Y', label: '星3Y' },
   { key: 'hudRestartX', label: '重开X' },
   { key: 'hudRestartY', label: '重开Y' },
+  { key: 'hudRestartScale', label: '重开大' },
   { key: 'hudSettingsX', label: '设置X' },
   { key: 'hudSettingsY', label: '设置Y' },
+  { key: 'hudSettingsScale', label: '设置大' },
+  { key: 'hudHintX', label: '提示X' },
+  { key: 'hudHintY', label: '提示Y' },
+  { key: 'hudHintFont', label: '提示字' },
 ];
 
 function loadTune(): BoardTune {
@@ -906,14 +911,19 @@ export function startIceGame(opts: {
     root.style.setProperty('--hud-star-on', `${tune.hudStarOn}px`);
     root.style.setProperty('--hud-restart-x', `${tune.hudRestartX}px`);
     root.style.setProperty('--hud-restart-y', `${tune.hudRestartY}px`);
+    root.style.setProperty('--hud-restart-scale', String(tune.hudRestartScale / 100));
     root.style.setProperty('--hud-settings-x', `${tune.hudSettingsX}px`);
     root.style.setProperty('--hud-settings-y', `${tune.hudSettingsY}px`);
+    root.style.setProperty('--hud-settings-scale', String(tune.hudSettingsScale / 100));
     root.style.setProperty('--hud-s0-x', `${tune.hudStar0X}px`);
     root.style.setProperty('--hud-s0-y', `${tune.hudStar0Y}px`);
     root.style.setProperty('--hud-s1-x', `${tune.hudStar1X}px`);
     root.style.setProperty('--hud-s1-y', `${tune.hudStar1Y}px`);
     root.style.setProperty('--hud-s2-x', `${tune.hudStar2X}px`);
     root.style.setProperty('--hud-s2-y', `${tune.hudStar2Y}px`);
+    root.style.setProperty('--hud-hint-x', `${tune.hudHintX}px`);
+    root.style.setProperty('--hud-hint-y', `${tune.hudHintY}px`);
+    root.style.setProperty('--hud-hint-font', `${tune.hudHintFont}px`);
   }
 
   function syncTuneUi(): void {
