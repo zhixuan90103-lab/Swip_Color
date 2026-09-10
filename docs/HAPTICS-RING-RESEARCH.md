@@ -7,20 +7,22 @@
 本游戏不是来电铃，也不是系统闹钟。检索「铃声震动」是为了弄清 **Apple 怎么把声音和 Taptic Engine 编成同一条时间线**，以及 **设计规则**（何时用、何时禁、和静音开关怎么相处）。能搬进游戏的是原则与原语，不是来电 UI。
 
 ```
-铃声震动在系统里是什么
+铃声震动在系统里是什么（检索前假设，收束见 §15）
         │
         ├─ 设计：因果 / 和谐 / 有用（WWDC19 三原则）
         │     听得到的节奏与摸得到的节奏同一拍；不为震而震
         │
         ├─ 实现：AHAP = Apple Haptic and Audio Pattern
-        │     连续事件 ≈ 铃声的「嗡」；瞬态 ≈ 节拍点；可叠音频事件
+        │     Continuous 的官方隐喻之一是 ringtone 的「嗡」（不是来电 API）
         │
-        └─ 系统策略：响铃音量、静音键、Haptics Always/Silent/Never
-              App 不能替代系统来电铃；只能在前台编自己的声触 pattern
+        └─ 系统策略：来电铃是系统服务；Always/Silent 管的是铃声和提醒
+              不是 in-app 游戏触感合同。App 只能在前台编自己的 pattern
 ```
 
-玩家（本游戏）目标：**出手有短回声、过关有仪式、不要震糊、设置能关。**  
-铃声资料只服务「怎么编长节奏 / 怎么和音效对齐」，不服务「后台响铃」。
+玩家（本游戏）目标：**出手有短回声、过关有仪式、不要震糊、触感可关（模块 `enabled`；设置 UI 未接开关）。**  
+铃声资料只服务「怎么编长节奏 / 怎么和音效对齐」，不服务「后台响铃」。玩法尚未 `audio.playSfx`，Harmony 的「同时播效」是以后接音效时的对齐法，不是现状。
+
+**读法：** 工程口径以 **§15、§20** 为准。§1–8 是计划骨架。§9–13 是初检，已按 §21 回写与后文冲突的句子。**§12 整表被 §15 取代。**
 
 ---
 
@@ -30,10 +32,10 @@
 
 | # | 问题 | 为何要问 |
 |---|------|----------|
-| Q1 | 系统「铃声 + 震动」是 **一条 AHAP 时间线**，还是铃声走 AVAudio、震动另开一条旧 `AudioServices` 长震？第三方能复现到什么程度？ | 弄清真实现 vs 用户口头「铃声震动」 |
+| Q1 | 第三方能把「铃声手感」复现到什么程度（AHAP/CH pattern）？系统来电内部是不是一条 AHAP **可以未知**。 | 弄清真实现 vs 用户口头「铃声震动」 |
 | Q2 | Apple 设计三原则 **Causality / Harmony / Utility** 在铃声场景怎么落地？游戏出手/过关各对应哪条，哪条禁止套铃声式连续震？ | 设计规则，不是 API 清单 |
 | Q3 | Transient vs Continuous：文档把 Continuous 比成「ringtone 的震」。游戏里哪些事件该 Continuous、哪些必须 Transient？连续最长多少才不烦？ | 原语选型 |
-| Q4 | Intensity / Sharpness 在「铃」和「敲」上怎么分工？铃声是低锐度长包络 + 节拍点高锐度叠上去吗？ | 调参语言 |
+| Q4 | Intensity / Sharpness 官方语义是什么？**禁止**把未写的「铃声低锐长包络」当默认。 | 调参语言 |
 | Q5 | 声触同步：同一 `CHHapticPattern` 里塞 `AudioCustom`，还是震动走 Core Haptics、音效走我们现有 Native Audio？引擎 `playsHapticsOnly` 现在是 true，开音频事件会和音效插件抢 session 吗？ | 和 AUDIO.md 的边界 |
 | Q6 | 静音键 / Settings → Sounds & Haptics → Ringtone Haptics（Always / Silent / Never）/ System Haptics：App 内震动跟哪条走？游戏是否必须自备开关、不能假设系统会替我们关？ | 合规与开关 |
 | Q7 | 旧 API `AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)` / 用户「自创振动」录音条，和 Core Haptics 是什么关系？还要不要碰？ | 禁止走回头路 |
@@ -75,7 +77,7 @@ Apple 怎么教人编「听得到 + 摸得到」。
 | 对象 | 要挖什么 |
 |------|----------|
 | HIG *Playing haptics* | 系统 pattern 不许挪用含义；一致因果；触听视和谐；不要为震而震 |
-| WWDC19 *Designing Audio-Haptic Experiences* | Causality / Harmony / Utility；铃声作 Continuous 的隐喻 |
+| WWDC19 *Designing Audio-Haptic Experiences* | Causality / Harmony / Utility。Continuous 的隐喻之一是 ringtone（不是来电 API） |
 | WWDC21 *Practice audio haptic design* | 同一三原则的练习：AHAP + AudioCustom、Quick Look 可视化 |
 | HIG *Playing audio* / *Designing for games* | 静音键预期、游戏采用 Core Haptics、可关强度 |
 | 用户设置：Sounds & Haptics | Ringtone/Text Tone 可配震动图案；Always Play vs Silent；System Haptics 总闸 |
@@ -100,18 +102,18 @@ Apple 怎么教人编「听得到 + 摸得到」。
 | 来电铃是系统服务 | 第三方 App **不能**注册为系统铃声播放器；CallKit 是电话场景，与游戏无关 |
 | 静音键 | 游戏音效 vs 触感是否分轨；HIG 对 category 的预期 |
 | 系统通知/来电可覆盖 App 触感 | 引擎文档已写 OS 可 override |
-| Music Haptics（较新） | 系统把音乐译成触感；是否暴露 API、和我们自编 AHAP 的关系 |
+| Music Haptics | **已反查不搬：** 无障碍（ISRC + Now Playing），不是铃声、不是游戏乐句 |
 | 无 Taptic 机型 / 模拟器 | `capabilitiesForHardware`；连续震退化为无 |
 
 ### D. 游戏怎么偷师（本仓库）
 
 | 对象 | 要挖什么 |
 |------|----------|
-| 出手 | 必须 Transient / UIKit impact；禁止铃声式连续 |
-| 过关 / 领星 | 是否一小段「乐句」（连续底 + 两下瞬态）配现有音效，而不是 notification 一声 |
-| 非法 / 顶墙 | 比成功更短、更钝，避免像走了棋 |
-| 与 AUDIO.md | 热路径：震动一次桥可接受；**禁止**把 wav 塞进 CH 引擎当主音效管道 |
-| 节流 | 铃声乐句未播完再出手：切还是叠？（HapticSampler 默认叠） |
+| 出手 | UIKit impact 或 CH transient。禁止顶格 30s / 铃声循环。极短 continuous 非交付物 |
+| 过关 / 领星 | `notification('success')` **即可**。更长乐句非必须 |
+| 非法 / 顶墙 | 比成功更短、更钝；现状与刹车同档 `light`（分级是缺口） |
+| 与 AUDIO.md | 禁止 wav 进 CH。玩法尚未播效；以后对齐靠同时 `void` 两路 |
+| 节流 | 新 player 会叠；防叠在 JS。乐句非必须，故非热路径债 |
 
 ### E. 交叉（最值钱）
 
@@ -119,7 +121,7 @@ Apple 怎么教人编「听得到 + 摸得到」。
 |------|----------|
 | Harmony：过关 iris + 星 + notification 是否同拍 | 视觉已有时长；触感应对齐 `YOU-MOTION` 数字，不另发明秒数 |
 | `playsHapticsOnly = true` vs 将来 AHAP 带音频 | 保持只震、音效插件播 wav，用同一相对时间表手工对齐 |
-| Utility：十五关每步都 medium 会不会震疲 | 推箱 / 刹车 / 非法要分级；铃声式只留给稀有事件 |
+| Utility：十五关每步都 medium 会不会震疲 | 推箱已 medium、其余 light。非法与刹车同档是缺口。过关乐句非必须 |
 | 静音键开着玩：只震不响是否仍「像铃」 | 触感必须独自可读，不能靠声补全因果 |
 
 ### 不作为主检索（除非顺手）
@@ -190,7 +192,7 @@ Apple 怎么教人编「听得到 + 摸得到」。
 2. 玩法只走 `src/utils/haptics.ts`（或再包 `gameHaptics`），禁止业务 `registerPlugin` / `navigator.vibrate`。  
 3. 节奏、cooldown、具名 pattern 在游戏层，不塞进 Swift。  
 4. iOS 生产音效仍走 AUDIO.md 管道，不把主 BGM/SFX 改成 CH 引擎音频事件。  
-5. 出手热路径保持短击；铃声式长句最多给过关 / 极少仪式。  
+5. 出手热路径保持短击。过关用系统 `notification('success')` 即可；更长乐句非必须。禁止顶格 30s 连续与铃声循环。  
 6. 真机验收，不用模拟器。  
 7. 不把系统来电铃、自定义振动录音器做成游戏功能。
 
@@ -228,7 +230,7 @@ Apple 怎么教人编「听得到 + 摸得到」。
 - 静音 / 系统触感 / 游戏开关真值表  
 - 过关乐句要不要做、多长、和 iris 谁对齐  
 
-未收束前，代码保持现状。
+检索已收束（§15 / §20）。**不因检索改代码。** 玩法/插件保持现状。
 
 ---
 
@@ -246,7 +248,7 @@ Apple 怎么教人编「听得到 + 摸得到」。
 - **原语：** Transient = 手电筒按钮那种一下；Continuous = 信息「激光」那种持续震（HIG）/ 铃声那种震（Core Haptics 总览）。Intensity = 力度 0–1；Sharpness = 软圆有机 vs 脆机械。另有 Attack / Decay / Release / Sustained 包络。
 - **HIG iOS 三档系统触感含义（玩法已在用，勿改义）：** Impact = 碰撞隐喻；Notification = 任务结果（success/warning/error）；Selection = 值在变。
 
-**仍未知（交给波次 2）：** App 内 Core Haptics 是否尊重 System Haptics / 静音键；`playsHapticsOnly` 与音效插件抢 session。
+**波次 1 当时未知（后文已答）：** CH × System Haptics 仍未知（Q9 待测）。`playsHapticsOnly` 与音效分层见 §10 / Q5。
 
 **不搬：** CallKit、VoIP 后台铃、Android 波形数组。
 
@@ -256,7 +258,7 @@ Apple 怎么教人编「听得到 + 摸得到」。
 
 **已回答 Q5、Q6、Q8：**
 
-- **声触分层保持现状。** AUDIO.md：iOS `.ambient` + `.mixWithOthers`，静音拨片仍静音游戏效。HapticSampler 要声触同播才 `init(audioSession:)`。本插件 `playsHapticsOnly = true`：**有意丢掉音频事件、降启动延迟**。主 SFX 继续 Native Audio；震动继续只震。Harmony 靠 **同一时刻 `void` 两路**（`gameHaptics.x()` 旁 `audio.playSfx('x')`），不要把 wav 塞进 CH。
+- **声触分层保持现状。** AUDIO.md：iOS `.ambient` + `.mixWithOthers`，静音拨片仍静音游戏效。HapticSampler 要声触同播才 `init(audioSession:)`。本插件 `playsHapticsOnly = true`：**有意丢掉音频事件、降启动延迟**。主 SFX 继续 Native Audio；震动继续只震。Harmony 以后靠同一时刻 `void` 两路（玩法尚未播效）。不要把 wav 塞进 CH。
 - **若将来 AHAP 带 AudioCustom：** 必须关 `playsHapticsOnly`、改 `init(audioSession:)`，并和 AUDIO.md 的 session 策略对账。**现在不做。** JS 已有 `playPattern(events)`，够编无声乐句；不必为铃声检索加 AHAP 文件桥。
 - **静音 / 开关真值（官方 + 社区，标证据）：**
   - **UIKit `UIFeedbackGenerator`：** 系统决定是否播。文档写明仅当：有 Taptic、**前台**、**System Haptics 开**（及电量等）。Apple Forums：后台不播是预期（因果：人必须把震和当前 App 对上号）。
@@ -285,8 +287,8 @@ Apple 怎么教人编「听得到 + 摸得到」。
 | 铃声能力 | 本插件 | 结论 |
 |----------|--------|------|
 | UIKit impact/notification/selection | 有，玩法在用 | 出手 / 过关继续走这里 |
-| CH transient（stackImpact / playPattern） | 有，玩法未用 | 碰撞分级、过关乐句的「节拍点」用这个 |
-| CH continuous + 50ms fade stop | 有，玩法未用 | 只给摩擦/长按；**不要当铃声循环** |
+| CH transient（stackImpact / playPattern） | 有，玩法未用 | **加料，非必须。** Impact medium/light 已合法 |
+| CH continuous + 50ms fade stop | 有，玩法未用 | 摩擦/长按可用；禁止顶格 30s / 铃声循环 |
 | AHAP 文件 loader | 无 | **不缺桥。** 乐句用现有 `playPattern` 字典即可 |
 | AudioCustom 同引擎 | 被 `playsHapticsOnly` 关掉 | **保持关** |
 | cooldown / 具名事件 | 无 | **缺口在游戏层**，不是 Swift |
@@ -297,9 +299,9 @@ Apple 怎么教人编「听得到 + 摸得到」。
 | | 游戏 `enabled` 开 | 游戏关 |
 |--|--|--|
 | 响铃 + System Haptics 开 | 出手 light/medium、过关 success 有震 | 不震 |
-| 静音拨片 | **仍应有触感**（效按 AUDIO 应静音）；记 SFX 是否真静 | 不震 |
-| System Haptics 关 | **记录** UIKit 与 `stackImpact` 是否都不震（预期 UIKit 不震；CH 记实测） | 不震 |
-| Accessibility Vibration 关 | 任何路径都不震 | 不震 |
+| 静音拨片 | **待测**（效按 AUDIO 应静音；触感是否仍在 **未测**） | 不震 |
+| System Haptics 关 | **待测**：UIKit 预期不震；CH × 该开关 **未知** | 不震 |
+| Accessibility Vibration 关 | **待测**（社区视为总闸，非 Apple 游戏 API 合同） | 不震 |
 
 Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `playPattern` 字典，可用同等 JSON 在 Mac 上预览；**不是发版必须品**。
 
@@ -307,19 +309,9 @@ Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `p
 
 ---
 
-## 12. 九问收束
+## 12. 九问收束（初检，**整表被 §15 取代**）
 
-| # | 结论 | 搬进工程？ |
-|---|------|------------|
-| Q1 | 系统铃是系统服务；App 用 AHAP/CH pattern 复现「声触同一拍」。不是两条旧长震。 | 原则是；不做来电 |
-| Q2 | Causality / Harmony / Utility。出手短因短果；过关才允许短乐句；禁止每步 notification success。 | 是，设计规则如下节 |
-| Q3 | 出手/非法 = Transient 或 UIKit impact。Continuous 只给长按类。过关 = 很短的 transient 串，或现成 notification success。连续默认 30s 禁用。 | 是 |
-| Q4 | Intensity=力，Sharpness=材质。推箱比滑停更重更脆；非法更轻更钝。无官方「铃声包络数字」，不要抄死。 | 调参语言；数字留给手感回合 |
-| Q5 | 保持两路：CH 只震 + Native Audio。不对齐就不要硬塞 AudioCustom。 | 是，不改插件旗 |
-| Q6 | 铃声 Always/Silent 管提醒。UIKit 跟 System Haptics + 前台。App 必须自备开关。读不到系统开关。 | 是 |
-| Q7 | 不碰 `kSystemSoundID_Vibrate`、不做客制振动录音器。 | 不搬 |
-| Q8 | 有限长 `playPattern`；能停的才用 advanced player。后台停连续。reset 已有。不要 fire-and-forget 叠在出手上。 | 是 |
-| Q9 | 真机四格 + Accessibility 总闸。Quick Look 可选。 | 验收；尚未跑真机 |
+下表保留作过程存档。工程口径 **只看 §15**。初检过强句（过关必须乐句、Continuous 一刀切）已作废。
 
 ---
 
@@ -327,12 +319,12 @@ Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `p
 
 未改 HAPTICS.md / 未加 `gameHaptics` 前，下列只约束「以后怎么接」，**不改现行代码**。
 
-1. **系统 pattern 不挪用。** `notification('success')` 只表示任务完成（过关）。出手禁止 success。非法禁止 error 四连（那是系统 error 的含义）。
-2. **离散走棋用短击。** 推箱 `impact('medium')` 或 CH transient；刹车/滑停 `light`；非法更轻。禁止 Continuous。
-3. **铃声式长句极度稀有。** 若做，用 `playPattern` 有限长（建议 ≤ overlay/iris 时长），transient 做拍、必要时极短 continuous 做底；播完自停；新出手 **不要叠**（等或切掉）。
+1. **系统 pattern 不挪用。** `notification('success')` 只表示任务完成（过关）。出手禁止 success。非法禁止挪用 **error 含义**（脉冲个数不必当规范）。
+2. **离散走棋用短击。** 推箱 `impact('medium')`；刹车/滑停/非法现状 `light`。禁止顶格 30s 与铃声循环。极短 continuous 不是检索交付物。
+3. **过关用 `notification('success')` 即可。** 更长乐句非必须。若做，有限长 `playPattern`，对齐 overlay 前仪式窗口（`sleep(280)`，不是 iris 片长）；新出手不要叠（JS 防叠，Swift 停不了）。
 4. **不为震而震。** 十五关每步都 medium 会疲。Utility：同拍重复可 cooldown。
-5. **可关。** 游戏开关是真值之一。关了仍可玩。不探测 System Haptics。
-6. **声触不同引擎。** 对齐靠同时 fire。保持 `playsHapticsOnly`。
+5. **可关。** 模块 `enabled` 是真值之一（设置 UI 未接）。关了仍可玩。不探测 System Haptics。
+6. **声触不同引擎。** 以后接效时同时 `void` 两路。现状玩法未播效。保持 `playsHapticsOnly`。
 7. **只走 `haptics.ts`。** 节奏在游戏层。不新增 AHAP 文件桥，除非设计师交付 `.ahap` 且不想用字典。
 8. **真机验收，不用模拟器。**
 
@@ -350,7 +342,7 @@ Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `p
 |------|------|------|
 | 「30s 连续像铃声时长」 | 30s 是 **API 上限**（Apple：continuous 必须给 duration，max 30s）。铃声多长官方没写。本插件 `duration ?? 30.0` 是顶格默认 | 游戏禁用顶格连续；乐句用远小于 30s 的有限长 |
 | 「HIG Continuous = 信息激光」vs「CH = ringtone」打架 | 两份官方各举一例，不是冲突 | 持续震的隐喻有铃、有激光；选型仍看时长与因果，不看名字 |
-| 「playsHapticsOnly 降延迟」当本仓库发明 | Apple Unity Core Haptics 插件文档写明：该旗忽略音频事件 **并降低启动延迟**；改值须停引擎再 start | 证据升级为官方旁证；保持 true |
+| 「playsHapticsOnly 降延迟」当本仓库发明 | **Apple 官方页** + Unity 旁证：忽略音频事件并降启动延迟；改值须停引擎再 start | 保持 true |
 | 「Always/Silent 绝对不管 in-app」 | 用户指南写的是 **ringtones and alerts**。in-app UIKit 另跟 System Haptics。CH 是否跟 Always/Silent **仍无官方句** | 不把 Always/Silent 当游戏合同；四格仍要测静音拨片 |
 | 「280ms = iris 时长」 | 代码是过关后 `sleep(280)` 再出 overlay | 对齐仪式窗口，不把 280 写成 iris |
 | 「error 是四连所以非法不能用 error」 | HIG 视频描述是四下脉冲，含义是 **发生了错误**。非法滑动不是系统 error 任务 | 禁止挪用 **含义**；脉冲个数不必当规范 |
@@ -390,7 +382,7 @@ Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `p
 
 18. `CHHapticEvent hapticContinuous maximum duration 30 seconds` → 官方上限  
 19. `Music Haptics MAMusicHapticsManager ISRC` → 无障碍，不搬  
-20. `CHHapticEngine playsHapticsOnly latency` → Unity 官方插件文档  
+20. `CHHapticEngine playsHapticsOnly latency` → **Apple 官方页**（Unity 为旁证）  
 21. `CHHapticEngine isMutedForHaptics vs System Haptics` → 两面旗  
 22. `Core Haptics silent mode first play audio` → iOS 18 已修的声触 bug；我们不播 CH 音频  
 
@@ -402,12 +394,12 @@ Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `p
 
 | # | 修订结论 | 证据 | 搬？ |
 |---|----------|------|------|
-| Q1 | 系统铃是设置里的铃+震动图案。App 用 CH/AHAP 编同一时间线。不是 AVAudio+旧长震两条。第三方复现的是 **手感**，不是来电 | CH 总览；用户指南；无公开来电 API | 原则；不做来电 |
+| Q1 | 系统铃是设置里的铃+震动图案（**系统内部是否 AHAP 未知**）。第三方用 CH/AHAP 复现手感，不是来电 | CH 总览；用户指南；无公开来电 API | 原则；不做来电 |
 | Q2 | Causality / Harmony / Utility。出手短因；过关用系统 success **即可**；禁止每步 success；禁止非法当 error | HIG Playing haptics；WWDC19/21 | 是 |
 | Q3 | Transient/UIKit = 出手与非法。Continuous = 长按/摩擦，且 **≪ 30s**。过关不必 Continuous | HIG 短触感；CH max 30s | 是 |
 | Q4 | Intensity=力，Sharpness=材质。无官方铃声包络数字。推箱重于滑停是 **我们的映射**，不是 Apple 表 | HIG custom sharpness | 语言是；数字手感回合 |
-| Q5 | 两路：CH 只震 + Native Audio。`playsHapticsOnly` 保持。开 AudioCustom 才要 `init(audioSession:)` 并对账静音拨片 | AUDIO.md；HapticSampler；Unity 文档 | 不改插件旗 |
-| Q6 | 铃声 Always/Silent → 提醒。UIKit → System Haptics+前台。CH 是否跟系统开关 **未官方写死**。无读取 API。App 自备 `enabled`。Accessibility Vibration = 总闸 | HIG/UIFeedback；Forums；用户指南 | 是；CH 分叉真机记 |
+| Q5 | 两路：CH 只震 + Native Audio。`playsHapticsOnly` 保持。开 AudioCustom 才要 `init(audioSession:)` 并对账静音拨片。玩法尚未播效 | AUDIO.md；HapticSampler；[playsHapticsOnly](https://developer.apple.com/documentation/corehaptics/chhapticengine/playshapticsonly) | 不改插件旗 |
+| Q6 | 铃声 Always/Silent → 提醒。UIKit → System Haptics+前台。CH × 系统开关 **未知**。无读取 API。App 自备 `enabled`（设置 UI 未接）。Accessibility Vibration：社区总闸，待测 | HIG/UIFeedback；用户指南 | 是；CH 分叉真机记 |
 | Q7 | 不碰 `kSystemSoundID_Vibrate`、不做客制振动录音器 | 旧 API / 设置 UX | 不搬 |
 | Q8 | 有限长 `playPattern` 停不了（本插件也不持有 player）。能停的只有连续 advanced player。后台停连续。reset 已有。JS 防叠 | HapticSampler；本 Swift | 是 |
 | Q9 | 真机四格 + Accessibility。Quick Look 可选未核。280ms 是 overlay 前等待 | 代码；HIG | 验收未跑 |
@@ -425,7 +417,7 @@ Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `p
 - 通路已够：UIKit 短击在用；CH pattern/连续闲置。  
 - 不要接铃声循环、不要 AHAP 文件桥、不要 CH 播 wav、不要读 System Haptics。  
 - 出手保持短击；过关保持 `notification('success')` 就符合 HIG；更长乐句非必须。  
-- 真缺口：游戏层具名事件 + cooldown + 开关存档；真机四格。  
+- 真缺口：游戏层具名事件 + cooldown；设置开关 UI 未接；真机四格待测。玩法尚未播效。  
 
 §13 设计规则仍有效，并加两条反查修正：
 
@@ -543,6 +535,8 @@ Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `p
 
 评估对象：本文 §1–20 + [HAPTICS.md](./HAPTICS.md) + [AUDIO.md](./AUDIO.md) + `haptics.ts` / 插件 / `iceGame.ts`。不新搜。只标 **打架 / 过时未改 / 证据混级 / 与代码不符**。
 
+**回写状态（本次）：** §21.6 已执行。前半过时句已改成后文口径。本节约仍作审计底稿，不再当「尚未统一」清单。
+
 ### 21.1 总判
 
 | 面 | 判 |
@@ -603,16 +597,16 @@ Finder Quick Look `.ahap`：WWDC21 官方设计步骤。本仓库若只走 JS `p
 | 8 | 关（机制） | 后台停连续是「若启用」债 |
 | 9 | **开** | 四格未跑；Quick Look 未核 |
 
-### 21.6 若要自洽，只改文档、不改代码
+### 21.6 回写清单（已执行，不改代码）
 
-1. §3 D / §13.2–3 / §11 能力表「用 stackImpact 做节拍」加删除线或指向 §19。  
-2. §12 标明「被 §15 取代」。  
-3. 文首树标明「检索前假设」。  
-4. §11 静音格改成「待测」不是「应有」。  
-5. §15 Q5 证据改 Apple `playsHapticsOnly` 页。  
-6. 玩家目标改成「触感可关（模块开关；设置 UI 未接）」以免像缺设置页。
+1. §3 D / §13.2–3 / §11 能力表已改：stackImpact 非必须；Continuous 只禁顶格/循环。  
+2. §12 标明被 §15 取代，初检表删除以免双口径。  
+3. 文首树标明检索前假设。  
+4. §11 静音 / System Haptics / Accessibility 格改为待测。  
+5. §15 Q5 证据改为 Apple `playsHapticsOnly` 页。  
+6. 玩家目标改为模块 `enabled`；注明设置 UI 未接、玩法未播效。
 
-**不**因此改插件或玩法。自洽修复是文档卫生，不是新检索。
+**不**因此改插件或玩法。§21.2 是回写前的裂口底稿。
 
 
 

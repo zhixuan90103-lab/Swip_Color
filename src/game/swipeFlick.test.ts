@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { decideFlick, isLightPressure } from './swipeFlick.ts';
+import { commitForIntent, decideFlick, isLightPressure } from './swipeFlick.ts';
 
 const base = {
   commit: 30,
@@ -41,5 +41,15 @@ describe('decideFlick', () => {
     assert.equal(isLightPressure(0.1, 'touch'), true);
     assert.equal(isLightPressure(0.5, 'touch'), false);
     assert.equal(isLightPressure(0, 'touch'), false);
+  });
+
+  it('上一手向右后，小幅向左用更短出手距离', () => {
+    const c = commitForIntent(30, 10, 1, -16, 0, 1.55);
+    assert.equal(c, 12);
+    assert.equal(decideFlick({ ...base, commit: c, dx: -16, dy: 0, speed: 400 }).fire, 3);
+  });
+
+  it('同向仍要满出手距离', () => {
+    assert.equal(commitForIntent(30, 10, 1, 16, 0, 1.55), 30);
   });
 });

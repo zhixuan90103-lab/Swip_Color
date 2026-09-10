@@ -7,10 +7,12 @@ import { DESIGN_SAFE, DESIGN_WIDTH } from '../adapt/design';
 import type { Dir } from './dir';
 import { FEEL1_DEFAULT, type Feel } from './feel';
 import {
+  commitForIntent,
   decideFlick,
   isLightPressure,
   LIGHT_COMMIT_MUL,
   LIGHT_SPEED_MUL,
+  NEXT_DOWN_AFTER_FIRE_GAP_MS,
   POST_FIRE_UP_GUARD_MS,
 } from './swipeFlick';
 import { shouldInvalidOnLift, shouldLatchSlowDrag } from './swipeAxis';
@@ -72,6 +74,7 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
   let pending: Dir | null = null;
   let lastFireAt = 0;
   let lastFiredUpTs = 0;
+  let lastFireDir: Dir | null = null;
   let commitTimer = 0;
   const BG_GUARD_MS = 800;
 
@@ -99,6 +102,7 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
 
   const emit = (dir: Dir) => {
     lastFireAt = performance.now();
+    lastFireDir = dir;
     onMove(dir);
   };
 
@@ -108,8 +112,16 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     if (feel.scheme !== 2) return;
     const dx = g.x - g.ox;
     const dy = g.y - g.oy;
+    const slop = scalePx(feel.slopPx);
     const lightMul = g.light ? LIGHT_COMMIT_MUL : 1;
-    const commit = scalePx(feel.commitPx) * lightMul;
+    const commit = commitForIntent(
+      scalePx(feel.commitPx) * lightMul,
+      slop,
+      lastFireDir,
+      dx,
+      dy,
+      feel.axisRatio,
+    );
     const blocked = Boolean(isBlocked?.());
     const spd = g.vel.axisSpeed(g.lastT);
     const speed = alongSpeed(spd, Math.abs(dx) >= Math.abs(dy) ? 1 : 0);
@@ -129,7 +141,7 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     });
     if (d.fire === null) return;
     if (blocked) {
-      if ((canQueue?.() ?? true) && pending === null) {
+      if (canQueue?.() ?? true) {
         g.fired = true;
         pending = d.fire;
       }
@@ -168,7 +180,9 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (isChrome(e.target)) return;
     if (!clientInStage(e.clientX, e.clientY, stageBox())) return;
-    if (g) return;
+    if (g) {
+      if (!g.fired || e.timeStamp - g.lastT < NEXT_DOWN_AFTER_FIRE_GAP_MS) return;
+    }
     if (lastFiredUpTs > 0 && e.timeStamp - lastFiredUpTs < POST_FIRE_UP_GUARD_MS) return;
     e.preventDefault();
     startG(e);
