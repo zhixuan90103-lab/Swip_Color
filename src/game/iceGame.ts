@@ -1,4 +1,6 @@
 import { haptics } from '../utils/haptics';
+import { gameHaptics } from './gameHaptics';
+import { crateOnCrate, landFeel, shouldNudge, stopSurface } from './hapticFeel';
 import {
   HUD_GOAL_ART_H,
   HUD_GOAL_ART_W,
@@ -19,7 +21,7 @@ import { createBoxMotion } from './boxMotion';
 import { createCellAdd } from './cellAdd';
 import { Z_LAYER, placeBoardItem } from './boardStack';
 import { createDomPool } from './objectPool';
-import { DIR_DELTA, ratingStars, type Cell, type Dir, type IceState } from './iceTypes';
+import { DIR_DELTA, ratingStars, type Cell, type Dir, type IceState, type SlideKind } from './iceTypes';
 import { LEVELS } from './levels';
 import {
   STAR_CROUCH_DROP,
@@ -774,6 +776,7 @@ export function startIceGame(opts: {
   }
 
   function collectStarFx(at: Cell, hudIndex: number): Promise<void> {
+    gameHaptics.star();
     const id = starKey(at);
     const star = board.querySelector(`[data-star="${id}"]`) as HTMLElement | null;
     const glow = glowEl(at);
@@ -1161,6 +1164,15 @@ export function startIceGame(opts: {
     goNext();
   });
 
+  function fireLand(s: IceState, stop: Cell, dir: Dir, kind: SlideKind, cells: number): void {
+    if (shouldNudge(kind, cells)) {
+      gameHaptics.nudge();
+      return;
+    }
+    const surface = stopSurface(s, stop, dir);
+    gameHaptics.land(landFeel(cells, surface, crateOnCrate(s, stop, dir)));
+  }
+
   async function playDir(dir: Dir): Promise<void> {
     if (inputLocked()) return;
     fadeHintOut();
@@ -1226,6 +1238,7 @@ export function startIceGame(opts: {
     if (boxI < 0 && result.pushedBox != null) boxI = result.pushedBox;
     const hitBox = boxI >= 0 ? (board.querySelector(`#ice-box-${boxI}`) as HTMLElement | null) : null;
     if (hitBox) boxMotion.startHit(hitBox, dir, now, hitAmpForCells(cells));
+    fireLand(result.state, stop, dir, result.kind, cells);
 
     if (state.won) {
       await Promise.all(starFxWait);
@@ -1248,7 +1261,7 @@ export function startIceGame(opts: {
         void overlay.offsetWidth;
         overlay.classList.add('is-open');
       }
-      void haptics.notification('success');
+      gameHaptics.clear();
     } else {
       if (levelIndex === 0 && l1HintStep < L1_HINTS.length) {
         if (l1HintStep === 0 && result.kind === 'brake') {
@@ -1261,7 +1274,6 @@ export function startIceGame(opts: {
           armHint();
         }
       }
-      void haptics.impact(result.kind === 'push' ? 'medium' : 'light');
       await sleep(hitDurationMs(cells));
       if (gen !== moveGen) return;
       youMotion.endSlide();
@@ -1287,7 +1299,7 @@ export function startIceGame(opts: {
     onInvalid: (d) => {
       if (inputLocked()) return;
       youMotion.startHit(iceDirFromSwipe(d), performance.now(), 0);
-      void haptics.impact('light');
+      gameHaptics.nudge();
     },
   });
 

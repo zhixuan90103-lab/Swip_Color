@@ -12,7 +12,6 @@ import {
   isLightPressure,
   LIGHT_COMMIT_MUL,
   LIGHT_SPEED_MUL,
-  NEXT_DOWN_AFTER_FIRE_GAP_MS,
   POST_FIRE_UP_GUARD_MS,
 } from './swipeFlick';
 import { shouldInvalidOnLift, shouldLatchSlowDrag } from './swipeAxis';
@@ -114,19 +113,13 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     const dy = g.y - g.oy;
     const slop = scalePx(feel.slopPx);
     const lightMul = g.light ? LIGHT_COMMIT_MUL : 1;
-    const commit = commitForIntent(
-      scalePx(feel.commitPx) * lightMul,
-      slop,
-      lastFireDir,
-      dx,
-      dy,
-      feel.axisRatio,
-    );
+    const fullCommit = scalePx(feel.commitPx) * lightMul;
+    const commit = commitForIntent(fullCommit, slop, lastFireDir, dx, dy, feel.axisRatio);
     const blocked = Boolean(isBlocked?.());
     const spd = g.vel.axisSpeed(g.lastT);
     const speed = alongSpeed(spd, Math.abs(dx) >= Math.abs(dy) ? 1 : 0);
     const speedMin = scalePx(feel.speedPxS) * (g.light ? LIGHT_SPEED_MUL : 1);
-    if (!g.slow && shouldLatchSlowDrag(Math.max(Math.abs(dx), Math.abs(dy)), speed, commit, speedMin)) {
+    if (!g.slow && shouldLatchSlowDrag(Math.max(Math.abs(dx), Math.abs(dy)), speed, fullCommit, speedMin)) {
       g.slow = true;
     }
     const d = decideFlick({
@@ -180,9 +173,7 @@ export function attachSwipeInput(opts: SwipeInputOptions): SwipeHandle {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     if (isChrome(e.target)) return;
     if (!clientInStage(e.clientX, e.clientY, stageBox())) return;
-    if (g) {
-      if (!g.fired || e.timeStamp - g.lastT < NEXT_DOWN_AFTER_FIRE_GAP_MS) return;
-    }
+    if (g && !g.fired) return;
     if (lastFiredUpTs > 0 && e.timeStamp - lastFiredUpTs < POST_FIRE_UP_GUARD_MS) return;
     e.preventDefault();
     startG(e);

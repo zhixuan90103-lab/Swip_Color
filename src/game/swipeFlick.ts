@@ -11,8 +11,6 @@ export const LIGHT_COMMIT_MUL = 1.4;
 export const LIGHT_SPEED_MUL = 1.35;
 /** 出手后抬手，这么短内的新按下当弹跳，整段忽略。 */
 export const POST_FIRE_UP_GUARD_MS = 10;
-/** 已出手后，超过这段没有新点才允许下一手按下（抬手晚到时才能开反向）。 */
-export const NEXT_DOWN_AFTER_FIRE_GAP_MS = 16;
 /** 上一手的反向：出手距离用这个倍数（小幅快甩回弹）。同向仍满 commit。 */
 export const REVERSE_COMMIT_MUL = 0.4;
 

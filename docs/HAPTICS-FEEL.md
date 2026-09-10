@@ -1,10 +1,10 @@
 # 震动手感：软角色 × 材质 × 滑程
 
-日期：**2026-09-10**。本文是**震动设计方案**（尚未接玩法）。  
+日期：**2026-09-10**。本文是**震动设计方案**。玩法已接：`hapticFeel.ts` + `gameHaptics.ts`（Core Haptics `stackImpact` / `playPattern`）。  
 运动真源：[YOU-MOTION.md](./YOU-MOTION.md)。接入真源：[HAPTICS.md](./HAPTICS.md)。检索口径：[HAPTICS-RING-RESEARCH.md](./HAPTICS-RING-RESEARCH.md) §15 / §13。  
 规则仍以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) 为准。Juice 不改模拟；震动也不改模拟。
 
-未改 `iceGame.ts` 前，现行仍是：推箱 `impact('medium')`，其余 `light`，过关 `notification('success')`，非法 `light`。数字进玩法时与本文同行导出，不要在 `iceGame` 再堆一套默认。
+数字与 `src/game/hapticFeel.ts` 导出同行。不要在 `iceGame.ts` 再堆一套默认。设置试震仍走 `haptics.impact`。
 
 ---
 
