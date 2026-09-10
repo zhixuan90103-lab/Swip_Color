@@ -924,11 +924,14 @@ button:active {
 }
 
 .ice-hint {
+  --hint-slide: 88px;
   position: relative;
   z-index: 1;
   margin: 0 auto 8px;
-  max-width: 320px;
-  padding: 10px 16px;
+  box-sizing: border-box;
+  min-width: 240px;
+  max-width: min(340px, calc(100% - 20px));
+  padding: 10px 36px;
   text-align: center;
   font-size: var(--hud-hint-font, 13px);
   font-weight: 600;
@@ -936,8 +939,32 @@ button:active {
   background: #f7ead4;
   border: 1.5px dashed #e2c49a;
   border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(
+    var(--hud-hint-x, 0px),
+    calc(var(--hud-hint-y, 0px) + var(--hint-slide))
+  );
+}
+
+.ice-hint.is-off {
+  --hint-slide: 88px;
+  opacity: 0;
+  transition: none;
+}
+
+.ice-hint.is-in {
+  --hint-slide: 0px;
   opacity: 1;
-  transform: translate(var(--hud-hint-x, 0px), var(--hud-hint-y, 0px));
+  transition:
+    transform 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 280ms ease;
+}
+
+.ice-hint.is-out {
+  --hint-slide: 0px;
+  opacity: 0;
+  transition: opacity 360ms ease;
 }
 
 .ice-iris {
@@ -1019,9 +1046,15 @@ button:active {
 
 .ice-overlay .ice-over-replay {
   --hud-btn-move: translate(0px, 0px);
+  --hud-icon-scale: 1;
   width: 52px;
   height: 52px;
   min-height: 52px;
+}
+
+.ice-overlay .ice-over-replay.is-press::before,
+.ice-overlay .ice-over-replay:active::before {
+  transform: scale(1);
 }
 
 .ice-next {

@@ -47,17 +47,18 @@
 
 规则数字以 [ICE-PUZZLE.md](./ICE-PUZZLE.md) §4 与 `FEEL2_DEFAULT` 为准。检索时用下表标 **已有 / 缺口 / 冲突**。
 
-| 机制 | 现状 |
-|------|------|
-| 死区 / 出手 / 轴比 | `slopPx` 10 · `commitPx` 30 · `axisRatio` 1.55 |
-| 速度 | 约 80ms 窗 · `speedPxS` 200；慢到 commit 仍不够速 → 本按下锁死 |
-| 次数 | 每次按下只一步；贴箱推要再滑一次 |
-| 斜滑 | 未锁轴、副/主 ≥ tan40°：只走唯一合法向 |
-| 边沿 | 顶/底安全区起手不走棋 |
-| 输入锁 | 只锁格点逻辑移动；juice 不挡下一手 |
-| UI | 按钮 / 预览条 / 标题不进棋盘手势 |
-| 缩放 | 门槛随舞台宽度 / 设计宽 390 换算 |
-| 无效 / 取消 | 无效回弹；后台且本按下已走棋可 abort |
+| 机制 | 现状 | 对照计划 |
+|------|------|----------|
+| 死区 / 出手 / 轴比 | `slopPx` 10 · `commitPx` 30 · `axisRatio` 1.55 | 已有 |
+| 速度 | 约 80ms 窗 · `speedPxS` 200；慢到 commit 仍不够速 → 本按下锁死 | 已有；抬手剥揭指尾巴（`liftTailMs`）测试已有 |
+| 次数 | 每次按下只一步；贴箱推要再滑一次 | 已有。`sameDirRepeat` 只属手感 1 |
+| 斜滑 | 未锁轴、副/主 ≥ tan40°：只走唯一合法向 | 已有。`getLegal` = `applyDir` 非 stuck → **顶墙算非法**，斜滑会改判到另一向 |
+| 边沿 | 仅 `clientY` 顶/底安全区起手 `ignoreFire` | **缺口：** 左右边、letterbox（`clientToDesign` 有忽略，滑动层未用） |
+| 输入锁 | `busy` 锁逻辑移动；抬手时若 busy 则 `liftQueued` 在 settle 再判 | 已有短缓冲，不是格斗式方向队列 |
+| UI | chrome 不进棋盘；键盘绕过全部门槛直接 `onMove` | 键盘不算滑动意图，另路 |
+| 缩放 | 门槛随舞台宽 / 390 | 已有 |
+| 无效 / 取消 | nudge；后台 800ms 内已走棋 abort；`pointercancel` **不** abort 已走棋 | **缺口：** cancel 与后台策略不一致 |
+| iOS 系统手势 | `preferredScreenEdgesDeferringSystemGestures = []`（故意不 defer 底边，Home 一次回桌面） | 与「游戏抢底边」教程相反，是产品选择 |
 
 原版 2048：`touchend` 才取较大轴、约 10px、无速度门槛。我们已站在「甩动 + 锁轴」一侧；检索不要倒退成等抬手的薄滑动。
 
@@ -222,3 +223,226 @@
 | 取消路径 | cancel / 后台：未提交不留下半步 |
 
 第 1 轮检索若推翻其中某条，改本节并在续节写原因，不要另开第二套默认。
+
+---
+
+## 9. 反查补漏（三轮开始前，对照现码 / 测试）
+
+计划原稿漏了这些，检索必须盯住，否则会空转：
+
+| 漏项 | 证据 | 对检索的影响 |
+|------|------|----------------|
+| letterbox 规范与实现分裂 | AGENTS / `clientToDesign` 写忽略；`swipeInput` 只看顶底 Y | Q6 不能只搜「安全区」，要问 **起手是否在设计矩形内** |
+| 左右系统手势 | `inSystemEdge` 无 X | iOS 控制中心 / 多任务在顶底；左右不是本机主冲突。仍要核 Pad |
+| 底边不 defer | BridgeVC 注释：Home 一次回桌面 | 检索「游戏应 defer 四边」不能当必须有；我们已否决底边 defer |
+| 合法向 = 非 stuck | `iceGame` `getLegal` | Q3「顶墙试探」**现行会改判**。这是策略选择，不是 bug 未搜到 |
+| `liftQueued` | busy 时抬手，settle 再 `commitOnLift` | Q7 已有「本段补判」，不是预输入下一方向 |
+| `pointercancel` 不撤棋 | `endHold(..., true)` 直接 return | Q6 取消路径不完整 |
+| 测试覆盖 | `swipeSegment` / `swipeVelocity` 对手感 2 斜滑、慢锁、揭指较全 | **无** 安全区、letterbox、cancel、chrome、键盘、`liftQueued` 的单元测试 |
+| 手感 1 用例混在同文件 | `commit: 16`、`sameDirRepeat` | 冰面默认手感 2；验收剧本不要用手感 1 数字 |
+| 撤销当冗余 | 关卡检索 Q6 未决 | 意图层 **禁止** 用撤销补误滑；Unwynd 评测依赖 undo，不适用 |
+| 键盘 | 无 slop/速度 | 不算滑动意图；真机任务不要用键替代甩 |
+
+查询补三条（原波次未写）：
+
+- `preferredScreenEdgesDeferringSystemGestures Capacitor CAPBridgeViewController`  
+- `touchSwipe triggerOnTouchEnd false threshold during move`  
+- `input buffer turn-based puzzle accidental queued move`
+
+---
+
+## 10. 轮 1（2026-09-10）：改计划 + 检索
+
+**本轮补漏：** 把 §2 标成已有/缺口；把 letterbox、cancel、合法向=非 stuck、底边不 defer 写进计划。
+
+**本轮检索盯：** 出手时机、系统边、四向误触。
+
+| 来源 | 轴 | 摘 | 对我们 |
+|------|----|----|--------|
+| [原版 2048 输入](https://github.com/gabrielecirulli/2048/blob/master/js/keyboard_input_manager.js) | 四向 | `touchend` 才判；`max(dx,dy)>10` 取较大轴；无速度 | 已否决。我们 move 出手 + 速度 + 轴比，不要退回去 |
+| [Cursa 触控状态机](https://cursa.app/en/page/touch-controls-for-mobile-games-input-patterns-and-feedback) | 四向 | 锁入 Drag 后不再当 Tap；假阳/假阴分记；边沿勿绑关键操作；**四向允许对角容差，过斜宁可不走** | 已有锁入与分记。斜滑「过斜不走」= 两向都能走时等待，已有 |
+| [Apple 响应性](https://developer.apple.com/documentation/xcode/improving-app-responsiveness) | 反馈 | 离散 <100ms；连续 <一帧 | 走棋 fire 可在甩途中；按下 ack 仍缺（无跟手光） |
+| [Apple defer 边](https://developer.apple.com/documentation/uikit/uiviewcontroller/preferredscreenedgesdeferringsystemgestures) | 系统 | 沉浸游戏可让 App 手势优先，系统要 **再滑一次** | 我们 **故意 `[]`**，Home 一次退出。检索结论：不要改成 All |
+| [Reachability 仍会抢下滑](https://developer.apple.com/forums/thread/797889) | 系统 | 即使 defer bottom，底边下滑仍可能触发 Reachability | 与「起手在底安全区 ignoreFire」同向：底边宁可假阴 |
+| [Unity 等抬手延迟](https://stackoverflow.com/questions/58807112/unity-2d-swipe-latency-on-phone) | 四向 | 只在 touch end 处理会感觉钝 | 支持 Q1：保持 move 出手 |
+| [SO 防 iPad 误滑 Home](https://stackoverflow.com/questions/51207827/how-to-prevent-accident-swipe-in-ios-game) | 系统 | defer `.bottom` | 与我们产品相反，标不适用 |
+| [Capacitor #6747](https://github.com/ionic-team/capacitor/issues/6747) | 系统 | 官方无 config；要 **子类 BridgeVC** 才能 defer | 我们已有子类，选择是空边 |
+
+**轮 1 对 Q 的推进：** Q1 倾向保持 move 出手。Q6 底边：假阴优先、不 defer Home。Q2 尚未用益智证据钉死。
+
+---
+
+## 11. 轮 2（2026-09-10）：改计划 + 检索
+
+**本轮补漏：** 轮 1 没挖「门槛达到即 fire」的工业默认、缓冲长度、Capacitor 必须改 VC。补进：TouchSwipe 的 `triggerOnTouchEnd`、格斗缓冲「过长会鬼输入」、益智可撤销 ≠ 识别该松。
+
+**本轮检索盯：** 出手时机 API、缓冲、斜向益智口碑。
+
+| 来源 | 轴 | 摘 | 对我们 |
+|------|----|----|--------|
+| [jQuery TouchSwipe](https://github.com/mattbryson/TouchSwipe-Jquery-Plugin) | 四向 | 默认 `triggerOnTouchEnd=true`、`threshold=75`；**false 则达阈值立即 fire 并结束手势**；`cancelThreshold` 往回滑可取消；`excludedElements` 排除按钮 | **混合模型与我们一致：** 达门槛就走（我们还加速度）。75px 比我们 30 设计 px 更钝。`cancelThreshold` 我们没有——慢滑锁死是另一种取消。按钮排除已有 |
+| [benmajor 注释](https://github.com/benmajor/jQuery-Touch-Events) | 四向 | `swipeend` 才适合自定义逻辑，避免刚过阈值就触发 | 页面滑动适用；**高代价走棋**更该达阈值+速度就走，否则冰面更钝 |
+| [input buffering 笔记](https://github.com/raduacg/game-mechanics-optimizations/blob/main/72_input_buffering.md) | 缓冲 | 动作 100–200ms；**回合制 / 菜单 / 时机就是谜题 → 不要缓冲**；过长会打出无意动作 | 冰面一步很贵：**不要方向队列**。现有 `liftQueued` 只补「这一段在 busy 时抬手」，可留 |
+| [Moonjump 论坛](https://moonjump.com/forum/game-dev/input-buffering-in-action-games-how-precise-is-precise-enough-and-what-s-your-actual-window-dbe216) | 缓冲 | 长缓冲 = ghost input；有效则 **最早合法帧执行并吃掉** | 若将来加缓冲：settle 立刻执行当前段，不清下一方向 |
+| [Tekken 8 缓冲 ~8 帧](https://www.hotspawn.com/tekken/guide/tekken-8-taking-advantage-of-the-input-buffer) | 缓冲 | 动作游戏专用 | 不适用 |
+| [Unwynd 评测](https://www.pocketgamer.com/unwynd/unwynd-bemuses-some-amuses-others/) | 高代价 | 「从没读错滑动；就算错了 undo 一行就好」 | 口碑靠 **识别准 + 撤销**。我们无撤销，识别必须更偏假阳防护 |
+| [Capacitor 文档 子类 VC](https://capacitorjs.com/docs/ios/viewcontroller) | 系统 | 改边手势必须子类 `CAPBridgeViewController` | 已有；改 defer 走 bootstrap，不在 JS 意图层 |
+
+**轮 2 对 Q 的推进：** Q1 拍板：门槛+速度在 **move** 上出手；抬手只处理未 fire 的 invalid / 补判。Q2：无撤销 → **假阳优先**。Q7：禁止格斗缓冲；保留 `liftQueued`。Q5 仍无资料支持识别层看箱子。
+
+---
+
+## 12. 轮 3（2026-09-10）：改计划 + 检索
+
+**本轮补漏：** 仍缺无效回声的规范来源、Android REJECT 触感、Roblox「TouchSwipe 改成要抬手」的翻车（及时被改没）。
+
+**本轮检索盯：** 无效反馈、抬手才认的回归。
+
+| 来源 | 轴 | 摘 | 对我们 |
+|------|----|----|--------|
+| [Board 交互：无效放置](https://docs.dev.board.fun/guides/piece-interaction-design) | 反馈 | **静默拒绝像 bug**；要挡住轮廓 / 短暂停 | 支持 Q8：nudge 保留；不要去掉无效回声 |
+| [Android `REJECT` haptic](https://developer.android.com/reference/android/view/HapticFeedbackConstants) | 反馈 | 系统有单独「拒绝」触感常量 | iOS 用轻/错误震，与走棋中/重分开。可试，不改识别门槛 |
+| [HN：错了就 error haptic](https://news.ycombinator.com/item?id=41731150) | 反馈 | 错步立刻震，玩家停止连点 | 无效 ≠ 走棋成功震 |
+| [Roblox TouchSwipe iOS 对齐抬手](https://devforum.roblox.com/t/userinputservicetouchswipe-appears-to-be-broken-iphone-studio-emulation/3275180) | 四向 | 官方把「抬手前就 fire」当 **旧 bug**，新行为要 flick 再抬手；开发者觉得店开不了 | 页面/UI 滑动要抬手；**我们是命令手势**，跟店抽屉相反。再次确认不要改成只抬手 |
+| [MDN 多指](https://developer.mozilla.org/en-US/docs/Web/API/Touch_events/Using_Touch_Events) | 系统 | cancel = 实现打断（指太多等） | cancel 应视为手势失败；已走棋是否撤回仍要产品拍板（现行不撤） |
+
+**轮 3 对 Q 的推进：** Q8 拍板：无效要回声，触感弱于走棋。Q3 无新外部证据推翻「唯一合法向」；内部冲突是顶墙改判，见 §13。Q4 外部无「先慢后甩应救」的益智先例；慢滑锁死留下。Q5 三轮无来源要识别器看箱 → 保持分层。Q9 剧本按测试缺口列。
+
+---
+
+## 13. 三轮收束（可当规范草案，改代码前先改 ICE-PUZZLE §4）
+
+### 必须有
+
+1. 状态机锁入：已出手或慢滑锁死，本按下不再改判。  
+2. 死区 × 出手距离 × 速度窗 × 轴比同时过才走棋。  
+3. **move 上出手**（门槛+速度够）；抬手只补 invalid / `liftQueued`。  
+4. 每次按下只一步。  
+5. 未锁轴过斜：两向都能走则等待；只一向合法才走该向。  
+6. 顶/底安全区起手整次不走棋（假阴换系统手势）。  
+7. 识别只出四向或 invalid；①② 只在 `iceSim`。  
+8. 无效有 nudge（可加更轻震）；与走棋反馈分开。  
+9. chrome / 多指次指不进棋盘；假阳/假阴分记调参。
+
+### 禁止有
+
+- 等抬手才判向（2048 / 新 TouchSwipe UI 模型）  
+- 识别器看面前有没有箱  
+- 格斗式方向队列  
+- 用撤销当误滑补偿  
+- 底边 defer 成「Home 要滑两次」（与现 BridgeVC 相反，除非改产品）  
+- ML / 八向 / 换薄滑动替换手感 2  
+- juice 期间锁死下一手  
+- 把 letterbox 外滑动当棋（规范已写忽略，实现仍缺）
+
+### 一句话决策
+
+**假阳优先：** 冰上一滑到底且无撤销，错向比「再甩一次」更伤。因此：慢滑锁死保留；速度门槛不降；斜向两可则不走。可动字段只有真机假阴过高时略降 `speedPxS` / `commitPx`，且必须分记两类错。不动：`axisRatio`、一次一步、安全区起手作废。
+
+### 斜滑策略（现行保留，写清顶墙）
+
+保留 **未锁轴 + 唯一合法向**。  
+**顶墙试探：** 现行 `getLegal` 把 stuck 当非法，斜滑会走到另一能走的轴。这是 **帮玩家拐弯，不是保留撞死手**。若以后要「斜着顶墙也 nudges 墙向」，应改 `getLegal` 或分叉条件，不要改轴比。已锁轴后略偏不改判（测试已有）。
+
+### 验收剧本（★ = 现测已有）
+
+| # | 轨迹 | 期望 |
+|---|------|------|
+| 1 ★ | 清楚甩、够速、过 commit | move 上 fire 该向 |
+| 2 ★ | 慢拖过 commit | 不 fire；本按下再快也不走 |
+| 3 ★ | 先慢后甩同一按下 | 不 fire |
+| 4 ★ | 未锁 ~45° 两向合法 | 不 fire |
+| 5 ★ | 未锁 ~45°/~40° 只一向合法 | fire 该向 |
+| 6 ★ | 未锁 ~35° | 不走分叉，等锁轴 |
+| 7 | 贴箱：第一下甩向箱、抬手、再按下再甩 | 两步：①然后②；识别两次方向相同即可 |
+| 8 | 顶/底安全区起手再甩 | 不 fire |
+| 9 | 按钮 / 预览条起手 | 不进棋盘 |
+| 10 | letterbox 外起手 | 不 fire（实现缺口） |
+| 11 | busy 中甩、抬手 | `liftQueued`：settle 后只可能补 **这一段** |
+| 12 | 抬手未达速、未过 commit、过 slop | invalid + nudge |
+| 13 | `pointercancel` | 未走棋：不 fire；已走棋：现行不撤（要否改另议） |
+| 14 | 已锁轴略偏、该轴 stuck 另一轴合法 | **不改判**（测试已有） |
+| 15 | 键盘方向 | 立即走棋，不经速度窗 |
+
+7、8–10、13 不能假装已被 `swipeSegment` 覆盖。
+
+### 否决（检索中反复出现、我们不用）
+
+| 想法 | 原因 |
+|------|------|
+| 抬手才走棋 | 延迟；Roblox/2048 模型服务的是页面滑动 |
+| commit 提到 ~75px | TouchSwipe 默认，冰面会假阴爆 |
+| defer 四边系统手势 | 与「Home 一次离开」冲突 |
+| 合法向分叉改成始终较大轴 | 假阳；原版 2048 的问题 |
+| 识别层看箱子 | ①② 是模拟，不是手势 |
+| 长输入缓冲 | ghost 走出冰面 |
+
+---
+
+## 14. 仍未检索闭合（不挡收束）
+
+- letterbox 起手是否应在 `onDown` 用 `clientToDesign` 整次 ignore（实现题，计划已标缺口）。  
+- `pointercancel` 已走棋撤不撤：无强来源，维持不撤，直到真机系统手势抢走半步。  
+- 按下未出手前的视觉 ack（跟手光）未做，属 YOU-MOTION / VISUAL，不是门槛。  
+- Pad 左右边系统手势未真机验。
+
+---
+
+## 15. 自洽评估（2026-09-10）
+
+对照五层：**玩家目标**（及时 / 不误判 / 冗余 / 舒适）· **ICE-PUZZLE §4** · **本文 §13 收束** · **现码** · **测试**。  
+只标矛盾与张力，不改识别代码。
+
+### 结论
+
+收束与手感 2 **判定核**自洽（move 出手、一次一步、慢滑锁、斜滑分叉、安全区 Y、分层 ①②）。  
+**文档层有三处硬矛盾**（规范已写、接线没有）；**目标层有两处张力**（已在收束里选边，但 ICE 措辞还像没选）。未发现「§13 两条互相打脸」的逻辑环。
+
+### 硬矛盾（规范 / 收束 vs 实现）
+
+| # | 说法 | 实际 | 伤哪条目标 |
+|---|------|------|------------|
+| C1 | AGENTS / ENGINEERING / `clientToDesign`：**letterbox 外忽略**。§13 禁止当棋、剧本 10 | `swipeInput` 监听 `window`，只用顶底 `clientY` 安全区；**不用** `isInDesignBounds` | 桌面预览 / Pad 黑边可走棋；真机全屏则不明显 |
+| C2 | §13 必须有「无效要 nudge」；feel 有 `nudgePx/Ms`；音效目录有 `nudge` | `iceGame` **不传 `onInvalid`**，也不 `applyFeelCss`。短滑抬手、两向都 stuck 的 `dead`、慢滑锁死后抬手 → **静默** | 舒适：静默像没收到。撞墙若已 **fire** 则走 `playDir(stuck)` 的 0 格砸入，那条有回声 |
+| C3 | ICE：「方向键与滑动**同一套走棋**」若读成同一套识别 | 键盘直接 `onMove`，无死区/速度/一次按下一步的滑动状态 | 桌面调试可连发；真机无键。若 ICE 只指 `applyDir`，则与码一致，**条文含糊** |
+
+C2 里要分开两种「无效」：
+
+- **未出手的失败**（不够快、不够远、两向 stuck 的 dead）→ 无回声。  
+- **已出手但格点不动**（锁轴朝墙、`kind=stuck`）→ 有 0 格砸入、轻震走 `playDir` 成功路径的 impact。  
+
+收束把它们都叫「无效」，实现只服务第二种。这是评估里最值得改文档或接线的一点。
+
+### 张力（已选边，但读起来像打架）
+
+| # | 两边 | 现状 | 算不算破自洽 |
+|---|------|------|----------------|
+| T1 | ICE 标题「与旧 2048 出手一致」vs §13 否决原版 `touchend`+10px | 「一致」= 仓库手感 2，不是 gabriele 源码 | 不破。ICE 宜改成「手感 2」，避免以后按 GitHub 2048 改回去 |
+| T2 | 玩家「没有误判」vs 「假阳优先」= 允许假阴 | 慢滑锁死、两可斜滑等待，都是故意不走 | 不破，若把误判定义为 **走出错向**。舒适上会觉得「甩了没动」 |
+| T3 | 「唯一合法向」帮拐弯 vs 「顶墙试探」 | `getLegal` = 非 stuck；未锁轴斜滑会改判；**已锁轴朝墙仍 fire 该轴**（测试「已锁略偏不改判」） | 不破，§13 已写明。ICE §4 只写未锁轴分叉，与码一致 |
+| T4 | 及时 vs 长滑锁手 | `busy` 锁整段格点滑（50ms×格）；juice 不锁；`liftQueued` 只补本段 | 与 YOU-MOTION / ICE 一致。飞很远时手感像迟钝，是玩法代价不是识别自相矛盾 |
+| T5 | 底边安全区 ignoreFire vs BridgeVC **不 defer** Home | 起手在底：棋不走，系统可一次回桌面 | 故意同向，自洽 |
+| T6 | `pointercancel` 不撤已走棋 vs 「取消路径」特征清单 | 未走棋不 fire；已走棋留下 | §14 已挂起。取消路径在清单里写满了，实现只做了一半，属 **收束未执行完**，不是两条规范互斥 |
+
+### 判定核（自洽，保持）
+
+- move 上 fire；慢滑锁死本按下；每次按下只一步。  
+- 未锁轴 ≥40° 才分叉；无 `legal` 则 45° 等待。  
+- ①② 只在 `iceSim` 看起步贴箱；`getLegal` 只 peek `applyDir`（`cloneState`）。  
+- 手感 2 测试覆盖 §13 剧本 1–6、14；7、8–10、13 仍无单测。  
+- `inputLockMs=0`：锁手靠 `busy`，不靠 feel 定时器。
+
+### 安全区实现细节（C1 的亲戚）
+
+`inSystemEdge` 用 `window.innerHeight` + CSS `--safe-top/bottom`。真机 WebView 铺满时与安全区同坐标系。桌面 `#device-switcher` 预览里，窗顶 ≠ 手机框顶，**安全区死带会对不准棋盘**。letterbox 与这条是同一类：意图层没用设计坐标。
+
+### 不改代码的收口（评估建议）
+
+1. ICE §4：「与旧 2048 出手一致」→「手感 2（甩动）」；「同一套走棋」→「同一套 `applyDir`；键无滑动门槛」。  
+2. §13 必须有 #8 拆成：撞墙已 fire → 0 格砸入；未 fire 的失败 → 要不要回声另拍（现行无）。  
+3. C1 标为已知实现债，与 §14 letterbox 合并，不要第三份「忽略边」说法。  
+4. 不要为了自洽去 defer 底边或改回抬手出手。
+
+评估不推翻 §13 假阳优先、move 出手、识别不管箱子。
+
+

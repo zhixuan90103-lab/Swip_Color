@@ -37,6 +37,14 @@ import { PUSH_STEP_MS, createYouMotion, hitAmpForCells, hitDurationMs, type Look
 
 const TUNE_KEY = 'ice-board-tune-v19';
 const STEP_MS = FEEL2_DEFAULT.slideMs;
+const HINT_IDLE_MS = 2500;
+const HINT_FIRST_MS = 700;
+const HINT_NEXT_MS = 420;
+const L1_HINTS = [
+  '向右滑动撞击木箱。',
+  '向右滑动推动木箱',
+  '将角色滑动到红色目标位置',
+] as const;
 const TUNE_KEYS = Object.keys(TUNE_DEFAULT) as (keyof BoardTune)[];
 const HUD_SLIDERS: { key: keyof BoardTune; label: string }[] = [
   { key: 'hudGoalW', label: '星底' },
@@ -156,7 +164,7 @@ export function startIceGame(opts: {
         </div>
       </div>
     </div>
-    <p class="ice-hint" id="ice-hint"></p>
+    <p class="ice-hint is-off" id="ice-hint"></p>
     <div class="ice-overlay hidden" id="ice-overlay">
       <div class="ice-card">
         <p class="ice-over-kicker" id="ice-over-kicker">Level 1</p>
@@ -525,7 +533,8 @@ export function startIceGame(opts: {
     placeTokens(s);
     const def = LEVELS[levelIndex]!;
     titleEl.textContent = `Level ${def.id}`;
-    hintEl.textContent = def.hint;
+    hintEl.textContent =
+      levelIndex === 0 && l1HintStep < L1_HINTS.length ? L1_HINTS[l1HintStep]! : '';
     starsEl.querySelectorAll('.hud-star').forEach((el, i) => {
       el.classList.toggle('is-on', i < s.collected);
     });
@@ -635,6 +644,49 @@ export function startIceGame(opts: {
   function prefersReduceMotion(): boolean {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
+
+  let hintTimer = 0;
+  let l1HintStep = 0;
+  const setHintText = () => {
+    hintEl.textContent =
+      levelIndex === 0 && l1HintStep < L1_HINTS.length ? L1_HINTS[l1HintStep]! : '';
+  };
+  const snapHintOff = () => {
+    hintEl.classList.remove('is-in', 'is-out');
+    hintEl.classList.add('is-off');
+  };
+  const showHint = () => {
+    if (disposed || state.won) return;
+    if (levelIndex !== 0 || l1HintStep >= L1_HINTS.length) return;
+    setHintText();
+    if (prefersReduceMotion()) {
+      hintEl.classList.remove('is-off', 'is-out');
+      hintEl.classList.add('is-in');
+      return;
+    }
+    hintEl.classList.remove('is-in', 'is-out');
+    hintEl.classList.add('is-off');
+    void hintEl.offsetWidth;
+    hintEl.classList.remove('is-off');
+    hintEl.classList.add('is-in');
+  };
+  const fadeHintOut = () => {
+    window.clearTimeout(hintTimer);
+    hintTimer = 0;
+    if (!hintEl.classList.contains('is-in')) {
+      snapHintOff();
+      return;
+    }
+    hintEl.classList.remove('is-in', 'is-off');
+    hintEl.classList.add('is-out');
+  };
+  const armHint = (delay = HINT_IDLE_MS) => {
+    window.clearTimeout(hintTimer);
+    snapHintOff();
+    if (disposed || state.won || levelIndex !== 0 || l1HintStep >= L1_HINTS.length) return;
+    setHintText();
+    hintTimer = window.setTimeout(showHint, delay);
+  };
 
   function pointOnStage(el: HTMLElement): { x: number; y: number; w: number; h: number } {
     const s = opts.stage.getBoundingClientRect();
@@ -945,6 +997,7 @@ export function startIceGame(opts: {
   applyTuneCss();
   syncTuneUi();
   paintStatic(state);
+  armHint(HINT_FIRST_MS);
 
   const onTuneInput = (key: keyof BoardTune) => (e: Event) => {
     const el = e.target as HTMLInputElement;
@@ -1028,7 +1081,9 @@ export function startIceGame(opts: {
     busy = false;
     state = LEVELS[levelIndex]!.make();
     overlay.classList.add('hidden');
+    l1HintStep = 0;
     paintStatic(state);
+    armHint(HINT_FIRST_MS);
   };
 
   const runIrisSwap = (swap: () => void) => {
@@ -1100,6 +1155,7 @@ export function startIceGame(opts: {
 
   async function playDir(dir: Dir): Promise<void> {
     if (busy || state.won || disposed) return;
+    fadeHintOut();
     const result = applyDir(state, dir);
     const gen = ++moveGen;
     busy = true;
@@ -1179,6 +1235,17 @@ export function startIceGame(opts: {
       overlay.classList.remove('hidden');
       void haptics.notification('success');
     } else {
+      if (levelIndex === 0 && l1HintStep < L1_HINTS.length) {
+        if (l1HintStep === 0 && result.kind === 'brake') {
+          l1HintStep = 1;
+          armHint(HINT_NEXT_MS);
+        } else if (l1HintStep === 1 && result.kind === 'push') {
+          l1HintStep = 2;
+          armHint(HINT_NEXT_MS);
+        } else {
+          armHint();
+        }
+      }
       void haptics.impact(result.kind === 'push' ? 'medium' : 'light');
       await sleep(hitDurationMs(cells));
       if (gen !== moveGen) return;
@@ -1207,6 +1274,7 @@ export function startIceGame(opts: {
   return {
     dispose() {
       disposed = true;
+      window.clearTimeout(hintTimer);
       iris.dispose();
       youMotion.abort();
       boxMotion.abort();
